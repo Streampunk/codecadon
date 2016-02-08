@@ -19,6 +19,7 @@ public:
   }
 
   void doFrame(Local<Array> srcBufArray, Nan::Callback* frameCallback) {
+    Nan::HandleScope scope;
     WaitForSingleObject(mWorkerFreeEvent, INFINITE);
     SaveToPersistent("srcBuf", srcBufArray);
 
@@ -32,8 +33,11 @@ public:
     }
 
     Local<Object> dstBuf = Nan::NewBuffer(mSrcBytes).ToLocalChecked();
+    Local<Array> dstBufArray = Nan::New<Array>(1);
+    dstBufArray->Set(0, dstBuf);
+    
     mDstBuf = node::Buffer::Data(dstBuf);
-    SaveToPersistent("dstBuf", dstBuf);
+    SaveToPersistent("dstBuf", dstBufArray);
     mFrameCallback = frameCallback;
 
     SetEvent(mDoWorkEvent);
@@ -54,7 +58,6 @@ private:
         break;
       mProcess->processFrame (mSrcBufVec, mDstBuf);
       progress.Send(reinterpret_cast<const char*>(mDstBuf), mDstBytes);
-      SetEvent(mWorkerFreeEvent);
     }
   }
   
@@ -62,6 +65,7 @@ private:
     Nan::HandleScope scope;
     Local<Value> argv[] = { GetFromPersistent("dstBuf") };
     mFrameCallback->Call(1, argv);
+    SetEvent(mWorkerFreeEvent);
   }
   
   void HandleOKCallback() {

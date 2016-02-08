@@ -13,6 +13,7 @@
   limitations under the License.
 */
 
+'use strict';
 var codecAddon = require('bindings')('./release/codecadon');
 
 const util = require('util');
@@ -30,18 +31,33 @@ function Encoder (format) {
 
 util.inherits(Encoder, EventEmitter);
 
-Encoder.prototype.start = function (callback) {
-  this.encoderAddon.start(callback);
+Encoder.prototype.start = function() {
+  try {
+    this.encoderAddon.start(function() {
+      this.emit('exit');
+    }.bind(this));
+  } catch (err) {
+    this.emit('error', err);
+  }
 }
 
-Encoder.prototype.encode = function (srcBufArray, cb) {
-  this.encoderAddon.encode (srcBufArray, function (result) {
-    cb (null, result);
-  })
+Encoder.prototype.encode = function (srcBufArray) {
+  try {
+    this.encoderAddon.encode(srcBufArray, function (result) {
+      this.emit('encoded', result);
+    }.bind(this));
+  } catch (err) {
+    this.emit('error', err);
+  }
 }
 
 Encoder.prototype.quit = function (srcBufArray, cb) {
-  this.encoderAddon.quit();
+  try {
+    this.encoderAddon.quit();
+    this.emit('quit');
+  } catch (err) {
+    this.emit('error', err);
+  }
 }
 
 var codecadon = {

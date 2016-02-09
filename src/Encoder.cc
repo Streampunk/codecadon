@@ -14,7 +14,7 @@ Encoder::~Encoder() {
 // iProcess
 uint32_t Encoder::processFrame (tBufVec srcBufVec, char* dstBuf) {
   uint32_t dstBufOffset = 0;
-  for (std::vector<std::pair<const char*, uint32_t> >::iterator it = srcBufVec.begin(); it != srcBufVec.end(); ++it) {
+  for (tBufVec::iterator it = srcBufVec.begin(); it != srcBufVec.end(); ++it) {
     const char* buf = it->first;
     uint32_t len = it->second;
     memcpy (dstBuf + dstBufOffset, buf, len);
@@ -30,7 +30,7 @@ NAN_METHOD(Encoder::Start) {
   if (obj->mWorker != NULL)
     Nan::ThrowError("Attempt to restart encoder when not idle");
   
-  obj->mWorker = new MyWorker(callback, obj);
+  obj->mWorker = new MyWorker(callback);
   AsyncQueueWorker(obj->mWorker);
 }
 
@@ -40,7 +40,7 @@ NAN_METHOD(Encoder::Encode) {
 
   if (obj->mWorker == NULL)
     Nan::ThrowError("Attempt to encode when worker not started");
-  obj->mWorker->doFrame(srcBufArray, new Nan::Callback(Local<Function>::Cast(info[1])));
+  obj->mWorker->doFrame(srcBufArray, obj, Local<Function>::Cast(info[1]));
 
   info.GetReturnValue().SetUndefined();
 }

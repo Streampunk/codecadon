@@ -27,7 +27,7 @@ public:
   static NAN_MODULE_INIT(Init);
 
   // iProcess
-  uint32_t processFrame (tBufVec srcBufVec, char* dstBuf);
+  bool processFrame (iProcessData *processData);
   
 private:
   explicit Encoder(uint32_t format);

@@ -41,13 +41,14 @@ Encoder.prototype.start = function() {
   }
 }
 
-Encoder.prototype.encode = function (srcBufArray) {
+Encoder.prototype.encode = function (srcBufArray, dstBuf, cb) {
   try {
-    this.encoderAddon.encode(srcBufArray, function (result) {
-      this.emit('encoded', result);
-    }.bind(this));
+    var numQueued = this.encoderAddon.encode(srcBufArray, dstBuf, function(resultReady) {
+      cb(null, resultReady?dstBuf:null);
+    });
+    return numQueued;
   } catch (err) {
-    this.emit('error', err);
+    cb(err);
   }
 }
 

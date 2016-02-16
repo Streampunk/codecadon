@@ -30,6 +30,11 @@ public:
     return val;
   }
 
+  size_t size() {
+    std::lock_guard<std::mutex> lk(m);
+    return qu.size();
+  }
+
 private:
   std::queue<T> qu;
   std::mutex m;
@@ -42,52 +47,42 @@ public:
     : Nan::AsyncProgressWorker(callback), mActive(true) {}
   ~MyWorker() {}
 
-  void doFrame(Local<Array> srcBufArray, iProcess *process, Local<Function> frameCallback) {
-    uint32_t srcBytes = 0;
-    tBufVec srcBufVec;
-    for (uint32_t i = 0; i < srcBufArray->Length(); ++i) {
-      Local<Object> bufferObj = Local<Object>::Cast(srcBufArray->Get(i));
-      uint32_t bufLen = (uint32_t)node::Buffer::Length(bufferObj);
-      srcBufVec.push_back(std::make_pair(node::Buffer::Data(bufferObj), bufLen)); 
-      srcBytes += bufLen;
-    }
+  uint32_t numQueued() {
+    return (uint32_t)mWorkQueue.size();
+  }
 
-    uint32_t dstBytes = srcBytes;
-    Local<Object> dstBuf = Nan::NewBuffer(dstBytes).ToLocalChecked();
-    Local<Array> dstBufArray = Nan::New<Array>(1);
-    dstBufArray->Set(0, dstBuf);
-
-    SaveToPersistent("callback", frameCallback);
-    SaveToPersistent("srcBuf", srcBufArray);
-    SaveToPersistent("dstBuf", dstBufArray);
-
+  void doFrame(iProcessData *processData, iProcess *process, Local<Function> frameCallback) {
     mWorkQueue.enqueue (
-      new WorkParams(process, srcBufVec, srcBytes, node::Buffer::Data(dstBuf), dstBytes));
+      new WorkParams(processData, process, new Nan::Callback(frameCallback)));
   }
 
   void quit() {
     mActive = false;    
-    mWorkQueue.enqueue (new WorkParams(NULL, tBufVec(), 0, NULL, 0));
+    mWorkQueue.enqueue (new WorkParams(NULL, NULL, NULL));
   }
 
 private:  
   void Execute(const ExecutionProgress& progress) {
   // Asynchronous, non-V8 work goes here
     while (mActive) {
-      WorkParams *p = mWorkQueue.dequeue();
-      if (!(mActive && p->mProcess))
+      WorkParams *wp = mWorkQueue.dequeue();
+      if (!(mActive && wp->mProcess))
         break;
-      p->mProcess->processFrame (p->mSrcBufVec, p->mDstBuf);
+      wp->mResultReady = wp->mProcess->processFrame (wp->mProcessData);
+      mDoneQueue.enqueue (wp);
       progress.Send(NULL, 0);
-      delete p;
     }
   }
   
   void HandleProgressCallback(const char *data, size_t size) {
     Nan::HandleScope scope;
-    Local<Function> frameCallback = Local<Function>::Cast(GetFromPersistent("callback"));
-    Local<Value> argv[] = { GetFromPersistent("dstBuf") };
-    Nan::Callback(frameCallback).Call(1, argv);
+    while (mDoneQueue.size() != 0)
+    {
+      WorkParams *wp = mDoneQueue.dequeue();
+      Local<Value> argv[] = { Nan::New(wp->mResultReady) };
+      wp->mFrameCallback->Call(1, argv);
+      delete wp;
+    }
   }
   
   void HandleOKCallback() {
@@ -97,16 +92,16 @@ private:
 
   bool mActive;
   struct WorkParams {
-    WorkParams (iProcess *process, tBufVec srcBufVec, uint32_t srcBytes, char *dstBuf, uint32_t dstBytes) 
-      : mProcess(process), mSrcBufVec(srcBufVec), mSrcBytes(srcBytes), mDstBuf(dstBuf), mDstBytes(dstBytes) {}
+    WorkParams (iProcessData *processData, iProcess *process, Nan::Callback *frameCallback)
+      : mProcessData(processData), mProcess(process), mFrameCallback(frameCallback), mResultReady(false) {}
 
+    iProcessData *mProcessData;
     iProcess *mProcess;
-    tBufVec mSrcBufVec;
-    uint32_t mSrcBytes;
-    char *mDstBuf;
-    uint32_t mDstBytes;
+    Nan::Callback *mFrameCallback;
+    bool mResultReady;
   };
   WorkQueue<WorkParams*> mWorkQueue;
+  WorkQueue<WorkParams*> mDoneQueue;
 };
 
 } // namespace streampunk

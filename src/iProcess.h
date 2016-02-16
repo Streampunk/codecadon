@@ -20,10 +20,15 @@ namespace streampunk {
 
 typedef std::vector<std::pair<const char*, uint32_t> > tBufVec;
 
+class iProcessData {
+public:
+  virtual ~iProcessData() {}
+};
+
 class iProcess {
 public:
   virtual ~iProcess() {}  
-  virtual uint32_t processFrame (tBufVec srcBufVec, char* dstBuf) = 0;
+  virtual bool processFrame (iProcessData *processData) = 0;
 };
 
 } // namespace streampunk

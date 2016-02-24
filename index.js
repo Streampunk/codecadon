@@ -19,12 +19,15 @@ var codecAddon = require('bindings')('./release/codecadon');
 const util = require('util');
 const EventEmitter = require('events');
 
-function Encoder (format) {
-  if (arguments.length !== 1 || typeof format !== 'number' ) {
-    this.emit('error', new Error('Encoder requires one argument: ' +
-      'format'));
+function Encoder (format, width, height) {
+  if (arguments.length !== 3 
+    || typeof format !== 'string' 
+    || typeof width !== 'number' 
+    || typeof height !== 'number') {
+    this.emit('error', new Error('Encoder requires three arguments: ' +
+      format));
   } else {
-    this.encoderAddon = new codecAddon.Encoder(format);
+    this.encoderAddon = new codecAddon.Encoder(format, width, height);
   }
   EventEmitter.call(this);
 }
@@ -33,7 +36,7 @@ util.inherits(Encoder, EventEmitter);
 
 Encoder.prototype.start = function() {
   try {
-    this.encoderAddon.start(function() {
+    return this.encoderAddon.start(function() {
       this.emit('exit');
     }.bind(this));
   } catch (err) {
@@ -41,9 +44,10 @@ Encoder.prototype.start = function() {
   }
 }
 
-Encoder.prototype.encode = function (srcBufArray, dstBuf, cb) {
+Encoder.prototype.encode = function(srcBufArray, srcWidth, srcHeight, srcFmtCode, dstBuf, cb) {
   try {
-    var numQueued = this.encoderAddon.encode(srcBufArray, dstBuf, function(resultReady) {
+    var numQueued = this.encoderAddon.encode(srcBufArray, srcWidth, srcHeight, srcFmtCode, 
+                                             dstBuf, function(resultReady) {
       cb(null, resultReady?dstBuf:null);
     });
     return numQueued;
@@ -52,13 +56,18 @@ Encoder.prototype.encode = function (srcBufArray, dstBuf, cb) {
   }
 }
 
-Encoder.prototype.quit = function (srcBufArray, cb) {
+Encoder.prototype.quit = function(cb) {
   try {
-    this.encoderAddon.quit();
-    this.emit('quit');
+    this.encoderAddon.quit(function(done) {
+      cb();
+    });
   } catch (err) {
     this.emit('error', err);
   }
+}
+
+Encoder.prototype.finish = function() {
+  this.encoderAddon.finish();
 }
 
 var codecadon = {

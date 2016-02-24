@@ -17,31 +17,36 @@
 #define ENCODER_H
 
 #include "iProcess.h"
+#include <memory>
 
 namespace streampunk {
 
 class MyWorker;
+class OpenH264Encoder;
+class ScaleConverter;
 
 class Encoder : public Nan::ObjectWrap, public iProcess {
 public:
   static NAN_MODULE_INIT(Init);
 
   // iProcess
-  bool processFrame (iProcessData *processData);
+  bool processFrame (std::shared_ptr<iProcessData> processData);
   
 private:
-  explicit Encoder(uint32_t format);
+  explicit Encoder(std::string format, uint32_t width, uint32_t height);
   ~Encoder();
 
   static NAN_METHOD(New) {
     if (info.IsConstructCall()) {
-      int format = info[0]->IsUndefined() ? 0 : Nan::To<uint32_t>(info[0]).FromJust();
-      Encoder *obj = new Encoder(format);
+      v8::String::Utf8Value format(Nan::To<v8::String>(info[0]).ToLocalChecked());
+      uint32_t width = info[1]->IsUndefined() ? 0 : Nan::To<uint32_t>(info[1]).FromJust();
+      uint32_t height = info[2]->IsUndefined() ? 0 : Nan::To<uint32_t>(info[2]).FromJust();
+      Encoder *obj = new Encoder(*format, width, height);
       obj->Wrap(info.This());
       info.GetReturnValue().Set(info.This());
     } else {
-      const int argc = 1;
-      v8::Local<v8::Value> argv[argc] = {info[0]};
+      const int argc = 3;
+      v8::Local<v8::Value> argv[] = {info[0], info[1], info[2]};
       v8::Local<v8::Function> cons = Nan::New(constructor());
       info.GetReturnValue().Set(cons->NewInstance(argc, argv));
     }
@@ -55,9 +60,15 @@ private:
   static NAN_METHOD(Start);
   static NAN_METHOD(Encode);
   static NAN_METHOD(Quit);
+  static NAN_METHOD(Finish);
 
-  uint32_t mFormat;
-  MyWorker* mWorker;
+  const std::string mFormat;
+  const uint32_t mWidth;
+  const uint32_t mHeight;
+  MyWorker *mWorker;
+  OpenH264Encoder *mEncoder;
+  ScaleConverter *mScaleConverter;
+  uint32_t mFrameNum;
 };
 
 } // namespace streampunk

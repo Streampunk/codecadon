@@ -16,9 +16,11 @@
 #ifndef IPROCESS_H
 #define IPROCESS_H
 
+#include <memory>
+
 namespace streampunk {
 
-typedef std::vector<std::pair<const char*, uint32_t> > tBufVec;
+typedef std::vector<std::pair<const uint8_t*, uint32_t> > tBufVec;
 
 class iProcessData {
 public:
@@ -28,7 +30,7 @@ public:
 class iProcess {
 public:
   virtual ~iProcess() {}  
-  virtual bool processFrame (iProcessData *processData) = 0;
+  virtual bool processFrame (std::shared_ptr<iProcessData> processData) = 0;
 };
 
 } // namespace streampunk

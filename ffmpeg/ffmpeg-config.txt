@@ -8,9 +8,9 @@ export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
   --disable-avdevice \
   --disable-avformat \
   --disable-swresample \
-  --disable-swscale \
   --disable-postproc \
   --disable-avfilter \
+  --disable-decoders \
   --disable-muxers \
   --disable-demuxers \
   --disable-parsers \

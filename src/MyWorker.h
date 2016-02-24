@@ -3,7 +3,6 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "iProcess.h"
 using namespace v8;
 
 namespace streampunk {
@@ -41,6 +40,8 @@ private:
   std::condition_variable cv;
 };
 
+class iProcess;
+class iProcessData;
 class MyWorker : public Nan::AsyncProgressWorker {
 public:
   MyWorker (Nan::Callback *callback)
@@ -51,25 +52,25 @@ public:
     return (uint32_t)mWorkQueue.size();
   }
 
-  void doFrame(iProcessData *processData, iProcess *process, Local<Function> frameCallback) {
+  void doFrame(std::shared_ptr<iProcessData> processData, iProcess *process, Nan::Callback *frameCallback) {
     mWorkQueue.enqueue (
-      new WorkParams(processData, process, new Nan::Callback(frameCallback)));
+      std::make_shared<WorkParams>(processData, process, frameCallback));
   }
 
-  void quit() {
-    mActive = false;    
-    mWorkQueue.enqueue (new WorkParams(NULL, NULL, NULL));
+  void quit(Nan::Callback *callback) {
+    mWorkQueue.enqueue (std::make_shared<WorkParams>(std::shared_ptr<iProcessData>(), (iProcess *)NULL, callback));
   }
 
 private:  
   void Execute(const ExecutionProgress& progress) {
   // Asynchronous, non-V8 work goes here
     while (mActive) {
-      WorkParams *wp = mWorkQueue.dequeue();
-      if (!(mActive && wp->mProcess))
-        break;
-      wp->mResultReady = wp->mProcess->processFrame (wp->mProcessData);
-      mDoneQueue.enqueue (wp);
+      std::shared_ptr<WorkParams> wp = mWorkQueue.dequeue();
+      if (wp->mProcess)
+        wp->mResultReady = wp->mProcess->processFrame(wp->mProcessData);
+      else
+        mActive = false;
+      mDoneQueue.enqueue(wp);
       progress.Send(NULL, 0);
     }
   }
@@ -78,10 +79,9 @@ private:
     Nan::HandleScope scope;
     while (mDoneQueue.size() != 0)
     {
-      WorkParams *wp = mDoneQueue.dequeue();
+      std::shared_ptr<WorkParams> wp = mDoneQueue.dequeue();
       Local<Value> argv[] = { Nan::New(wp->mResultReady) };
-      wp->mFrameCallback->Call(1, argv);
-      delete wp;
+      wp->mCallback->Call(1, argv);
     }
   }
   
@@ -92,16 +92,16 @@ private:
 
   bool mActive;
   struct WorkParams {
-    WorkParams (iProcessData *processData, iProcess *process, Nan::Callback *frameCallback)
-      : mProcessData(processData), mProcess(process), mFrameCallback(frameCallback), mResultReady(false) {}
+    WorkParams(std::shared_ptr<iProcessData> processData, iProcess *process, Nan::Callback *callback)
+      : mProcessData(processData), mProcess(process), mCallback(callback), mResultReady(false) {}
 
-    iProcessData *mProcessData;
+    std::shared_ptr<iProcessData> mProcessData;
     iProcess *mProcess;
-    Nan::Callback *mFrameCallback;
+    Nan::Callback *mCallback;
     bool mResultReady;
   };
-  WorkQueue<WorkParams*> mWorkQueue;
-  WorkQueue<WorkParams*> mDoneQueue;
+  WorkQueue<std::shared_ptr<WorkParams> > mWorkQueue;
+  WorkQueue<std::shared_ptr<WorkParams> > mDoneQueue;
 };
 
 } // namespace streampunk

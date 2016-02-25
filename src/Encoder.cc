@@ -60,7 +60,7 @@ Encoder::Encoder(std::string format, uint32_t width, uint32_t height)
 Encoder::~Encoder() {}
 
 // iProcess
-bool Encoder::processFrame (std::shared_ptr<iProcessData> processData) {
+uint32_t Encoder::processFrame (std::shared_ptr<iProcessData> processData) {
   Timer t;
   std::shared_ptr<EncodeProcessData> epd = std::dynamic_pointer_cast<EncodeProcessData>(processData);
 
@@ -78,12 +78,12 @@ bool Encoder::processFrame (std::shared_ptr<iProcessData> processData) {
   printf("scale  : %.2fms\n", t.delta());
   
   // do the encode
-  bool done = false;
-  mEncoder->encodeFrame (convertBuf, epd->dstBuf(), mFrameNum++, done);
+  uint32_t dstBytes = 0;
+  mEncoder->encodeFrame (convertBuf, epd->dstBuf(), mFrameNum++, &dstBytes);
   printf("encode : %.2fms\n", t.delta());
   printf("total  : %.2fms\n", t.total());
 
-  return done;
+  return dstBytes;
 }
 
 NAN_METHOD(Encoder::Start) {

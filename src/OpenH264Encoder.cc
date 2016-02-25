@@ -63,7 +63,8 @@ uint32_t OpenH264Encoder::bytesReq() const {
   return mWidth * mHeight; // todo: how should this be calculated ??
 }
 
-void OpenH264Encoder::encodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, bool& done) {
+void OpenH264Encoder::encodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, 
+                                   uint32_t frameNum, uint32_t *pDstBytes) {
   // setup source frame data
   mFrame->format = mContext->pix_fmt;
   mFrame->width  = mContext->width;
@@ -83,10 +84,10 @@ void OpenH264Encoder::encodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_p
   AVPacket pkt;
   av_init_packet(&pkt);
   pkt.data = dstBuf->buf();
-  pkt.size = planeBytes * 5 / 2;
+  pkt.size = bytesReq();
   int got_output;
   avcodec_encode_video2(mContext, &pkt, mFrame, &got_output);
-  done = (got_output != 0);
+  *pDstBytes = got_output ? pkt.size : 0;
   
   av_packet_unref(&pkt);
   av_frame_unref(mFrame);

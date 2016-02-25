@@ -30,7 +30,7 @@ public:
   static NAN_MODULE_INIT(Init);
 
   // iProcess
-  bool processFrame (std::shared_ptr<iProcessData> processData);
+  uint32_t processFrame (std::shared_ptr<iProcessData> processData);
   
 private:
   explicit Encoder(std::string format, uint32_t width, uint32_t height);

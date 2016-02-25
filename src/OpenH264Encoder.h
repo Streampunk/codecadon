@@ -36,7 +36,7 @@ public:
   uint32_t pixFmt() const { return mPixFmt; }
   
   void init();
-  void encodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, bool& done);
+  void encodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, uint32_t *pDstBytes);
 
 private:
   const uint32_t mWidth;

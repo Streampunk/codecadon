@@ -67,7 +67,7 @@ private:
     while (mActive) {
       std::shared_ptr<WorkParams> wp = mWorkQueue.dequeue();
       if (wp->mProcess)
-        wp->mResultReady = wp->mProcess->processFrame(wp->mProcessData);
+        wp->mResultBytes = wp->mProcess->processFrame(wp->mProcessData);
       else
         mActive = false;
       mDoneQueue.enqueue(wp);
@@ -80,7 +80,7 @@ private:
     while (mDoneQueue.size() != 0)
     {
       std::shared_ptr<WorkParams> wp = mDoneQueue.dequeue();
-      Local<Value> argv[] = { Nan::New(wp->mResultReady) };
+      Local<Value> argv[] = { Nan::New(wp->mResultBytes) };
       wp->mCallback->Call(1, argv);
     }
   }
@@ -93,12 +93,12 @@ private:
   bool mActive;
   struct WorkParams {
     WorkParams(std::shared_ptr<iProcessData> processData, iProcess *process, Nan::Callback *callback)
-      : mProcessData(processData), mProcess(process), mCallback(callback), mResultReady(false) {}
+      : mProcessData(processData), mProcess(process), mCallback(callback), mResultBytes(0) {}
 
     std::shared_ptr<iProcessData> mProcessData;
     iProcess *mProcess;
     Nan::Callback *mCallback;
-    bool mResultReady;
+    uint32_t mResultBytes;
   };
   WorkQueue<std::shared_ptr<WorkParams> > mWorkQueue;
   WorkQueue<std::shared_ptr<WorkParams> > mDoneQueue;

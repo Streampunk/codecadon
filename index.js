@@ -47,8 +47,8 @@ Encoder.prototype.start = function() {
 Encoder.prototype.encode = function(srcBufArray, srcWidth, srcHeight, srcFmtCode, dstBuf, cb) {
   try {
     var numQueued = this.encoderAddon.encode(srcBufArray, srcWidth, srcHeight, srcFmtCode, 
-                                             dstBuf, function(resultReady) {
-      cb(null, resultReady?dstBuf:null);
+                                             dstBuf, function(resultBytes) {
+      cb(null, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
   } catch (err) {

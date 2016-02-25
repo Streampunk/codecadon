@@ -30,7 +30,7 @@ public:
 class iProcess {
 public:
   virtual ~iProcess() {}  
-  virtual bool processFrame (std::shared_ptr<iProcessData> processData) = 0;
+  virtual uint32_t processFrame (std::shared_ptr<iProcessData> processData) = 0;
 };
 
 } // namespace streampunk

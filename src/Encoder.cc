@@ -76,10 +76,10 @@ uint32_t Encoder::processFrame (std::shared_ptr<iProcessData> processData) {
   std::shared_ptr<Memory> scaledBuf = mScaleConverter->scaleConvertFrame (convertBuf, epd->srcWidth(), epd->srcHeight(), 0,
                                                                           mEncoder->width(), mEncoder->height(), mEncoder->pixFmt());
   printf("scale  : %.2fms\n", t.delta());
-  
+
   // do the encode
   uint32_t dstBytes = 0;
-  mEncoder->encodeFrame (convertBuf, epd->dstBuf(), mFrameNum++, &dstBytes);
+  mEncoder->encodeFrame (scaledBuf, epd->dstBuf(), mFrameNum++, &dstBytes);
   printf("encode : %.2fms\n", t.delta());
   printf("total  : %.2fms\n", t.total());
 

@@ -43,7 +43,7 @@ Packers::Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFm
   }
   else if (0 == mSrcFmtCode.compare("v210")) {
     uint32_t srcPitchBytes = ((mSrcWidth + 47) / 48) * 48 * 8 / 3;
-    if ((mSrcWidth * 5 / 2) * mSrcHeight > mSrcBytes) {
+    if (srcPitchBytes * mSrcHeight > mSrcBytes) {
       Nan::ThrowError("insufficient source buffer for conversion\n");
     }
   }

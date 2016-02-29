@@ -9,6 +9,37 @@
                    "src/Packers.cc" ],
       "include_dirs": [ "<!(node -e \"require('nan')\")", "ffmpeg/include" ],
       'conditions': [
+        ['OS=="linux"', {
+          "cflags_cc!": [ 
+            "-fno-rtti" 
+          ],
+          "cflags_cc": [
+            "-std=c++11"
+          ],
+          "link_settings": {
+            "libraries": [
+              "<@(module_root_dir)/build/Release/libavcodec.so",
+              "<@(module_root_dir)/build/Release/libavutil.so",
+              "<@(module_root_dir)/build/Release/libswscale.so",
+              "<@(module_root_dir)/build/Release/libopenh264.so"
+            ],
+            "ldflags": [
+              "-L<@(module_root_dir)/build/Release",
+              "-Wl,-rpath,<@(module_root_dir)/build/Release"
+            ]
+          },
+          "copies": [
+            {
+              "destination": "build/Release/",
+              "files": [
+                "<!@(ls -1 ffmpeg/bin/libavcodec.so*)",
+                "<!@(ls -1 ffmpeg/bin/libavutil.so*)",
+                "<!@(ls -1 ffmpeg/bin/libswscale.so*)",
+                "<!@(ls -1 ffmpeg/bin/libopenh264.so*)"
+              ]
+            }
+          ] 
+        }],
         ['OS=="mac"', {
           'xcode_settings': {
             'GCC_ENABLE_CPP_RTTI': 'YES',
@@ -24,7 +55,7 @@
               "libavutil.dylib",
               "libswscale.dylib",
               "libopenh264.dylib"
-            ],
+            ]
           },
           "copies": [
             { 

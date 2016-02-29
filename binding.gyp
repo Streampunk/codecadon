@@ -35,7 +35,7 @@
                 "<!@(ls -1 ffmpeg/bin/libavcodec.so*)",
                 "<!@(ls -1 ffmpeg/bin/libavutil.so*)",
                 "<!@(ls -1 ffmpeg/bin/libswscale.so*)",
-                "<!@(ls -1 ffmpeg/bin/libopenh264.so*)"
+                "<!@(ls -1 ffmpeg/bin/libopenh264*.so*)"
               ]
             }
           ] 

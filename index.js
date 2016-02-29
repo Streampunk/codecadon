@@ -14,7 +14,7 @@
 */
 
 'use strict';
-var codecAddon = require('bindings')('./release/codecadon');
+var codecAddon = require('bindings')('./Release/codecadon');
 
 const util = require('util');
 const EventEmitter = require('events');

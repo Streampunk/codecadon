@@ -106,7 +106,7 @@ void Packers::convertPGroupto420P (const uint8_t *const srcBuf, uint8_t *const d
       uint8_t s3 = srcBytes[3];         
       uint8_t s4 = srcBytes[4];         
       srcBytes += 5;
-      
+
       dstYBytes[0] = ((s1 & 0x3f) << 2) | ((s2 & 0xc0) >> 6);      
       dstYBytes[1] = ((s3 & 0x03) << 6) | ((s4 & 0xfc) >> 2);      
       dstYBytes += 2;
@@ -118,10 +118,10 @@ void Packers::convertPGroupto420P (const uint8_t *const srcBuf, uint8_t *const d
       dstVBytes[0] = evenLine ? v0 : (v0 + dstVBytes[0]) >> 1;
       dstVBytes += 1;
     }
-  
+
     srcLine += srcPitchBytes;
     dstYLine += dstLumaPitchBytes; 
-    if (evenLine) {
+    if (!evenLine) {
       dstULine += dstChromaPitchBytes;
       dstVLine += dstChromaPitchBytes;
     } 
@@ -177,7 +177,7 @@ void Packers::convertV210to420P (const uint8_t *const srcBuf, uint8_t *const dst
 
     srcLine += srcPitchBytes;
     dstYLine += dstLumaPitchBytes; 
-    if (evenLine) {
+    if (!evenLine) {
       dstULine += dstChromaPitchBytes;
       dstVLine += dstChromaPitchBytes;
     } 

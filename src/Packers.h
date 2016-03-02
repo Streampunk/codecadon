@@ -40,6 +40,7 @@ private:
   std::string mDstFmtCode;
 };
 
+uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t height);
 void dumpPGroupRaw (uint8_t *pgbuf, uint32_t width, uint32_t numLines);
 void dump420P (uint8_t *buf, uint32_t width, uint32_t height, uint32_t numLines);
 

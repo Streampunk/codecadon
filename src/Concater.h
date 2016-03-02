@@ -13,8 +13,8 @@
   limitations under the License.
 */
 
-#ifndef ENCODER_H
-#define ENCODER_H
+#ifndef CONCATER_H
+#define CONCATER_H
 
 #include "iProcess.h"
 #include <memory>
@@ -22,9 +22,8 @@
 namespace streampunk {
 
 class MyWorker;
-class OpenH264Encoder;
 
-class Encoder : public Nan::ObjectWrap, public iProcess {
+class Concater : public Nan::ObjectWrap, public iProcess {
 public:
   static NAN_MODULE_INIT(Init);
 
@@ -32,15 +31,15 @@ public:
   uint32_t processFrame (std::shared_ptr<iProcessData> processData);
   
 private:
-  explicit Encoder(std::string format, uint32_t width, uint32_t height);
-  ~Encoder();
+  explicit Concater(std::string format, uint32_t width, uint32_t height);
+  ~Concater();
 
   static NAN_METHOD(New) {
     if (info.IsConstructCall()) {
       v8::String::Utf8Value format(Nan::To<v8::String>(info[0]).ToLocalChecked());
       uint32_t width = info[1]->IsUndefined() ? 0 : Nan::To<uint32_t>(info[1]).FromJust();
       uint32_t height = info[2]->IsUndefined() ? 0 : Nan::To<uint32_t>(info[2]).FromJust();
-      Encoder *obj = new Encoder(*format, width, height);
+      Concater *obj = new Concater(*format, width, height);
       obj->Wrap(info.This());
       info.GetReturnValue().Set(info.This());
     } else {
@@ -57,7 +56,7 @@ private:
   }
 
   static NAN_METHOD(Start);
-  static NAN_METHOD(Encode);
+  static NAN_METHOD(Concat);
   static NAN_METHOD(Quit);
   static NAN_METHOD(Finish);
 
@@ -65,8 +64,7 @@ private:
   const uint32_t mWidth;
   const uint32_t mHeight;
   MyWorker *mWorker;
-  OpenH264Encoder *mEncoder;
-  uint32_t mFrameNum;
+  uint32_t mDstBytesReq;
 };
 
 } // namespace streampunk

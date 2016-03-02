@@ -4,7 +4,6 @@
 #include "Timer.h"
 #include "Packers.h"
 #include "Memory.h"
-#include "ScaleConverter.h"
 #include "OpenH264Encoder.h"
 
 #include <memory>
@@ -15,28 +14,22 @@ namespace streampunk {
 
 class EncodeProcessData : public iProcessData {
 public:
-  EncodeProcessData (Local<Array> srcBufArray, uint32_t srcWidth, uint32_t srcHeight, std::string srcFmtCode, Local<Object> dstBuf)
-    : mSrcWidth(srcWidth), mSrcHeight(srcHeight), 
-      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBuf), (uint32_t)node::Buffer::Length(dstBuf))) {
-    uint32_t srcBytes = 0;
-    for (uint32_t i = 0; i < srcBufArray->Length(); ++i) {
-      Local<Object> bufferObj = Local<Object>::Cast(srcBufArray->Get(i));
-      uint32_t bufLen = (uint32_t)node::Buffer::Length(bufferObj);
-      mSrcBufVec.push_back(std::make_pair((uint8_t *)node::Buffer::Data(bufferObj), bufLen)); 
-      srcBytes += bufLen;
-    }
-    mPacker = std::make_shared<Packers>(mSrcWidth, mSrcHeight, srcFmtCode, srcBytes, "420P");
-  }
+  EncodeProcessData (Local<Object> srcBuf, uint32_t srcWidth, uint32_t srcHeight, std::string srcFmtCode, Local<Object> dstBuf)
+    : mSrcBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBuf), (uint32_t)node::Buffer::Length(srcBuf))),
+      mSrcWidth(srcWidth), mSrcHeight(srcHeight), 
+      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBuf), (uint32_t)node::Buffer::Length(dstBuf))),
+      mPacker(std::make_shared<Packers>(mSrcWidth, mSrcHeight, srcFmtCode, (uint32_t)node::Buffer::Length(srcBuf), "420P"))
+    { }
   ~EncodeProcessData() { }
   
-  tBufVec srcBufVec() const { return mSrcBufVec; }
+  std::shared_ptr<Memory> srcBuf() const { return mSrcBuf; }
   uint32_t srcWidth() const { return mSrcWidth; }
   uint32_t srcHeight() const { return mSrcHeight; }
   std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
   std::shared_ptr<Packers> packer() const { return mPacker; }
 
 private:
-  tBufVec mSrcBufVec;
+  std::shared_ptr<Memory> mSrcBuf;
   const uint32_t mSrcWidth;
   const uint32_t mSrcHeight;
   std::shared_ptr<Memory> mDstBuf;
@@ -47,6 +40,7 @@ private:
 Encoder::Encoder(std::string format, uint32_t width, uint32_t height) 
   : mFormat(format), mWidth(width), mHeight(height),
     mWorker(NULL), mFrameNum(0) {
+
   if (mFormat.compare("h264")) {
     std::string err = std::string("Unsupported codec type \'") + mFormat.c_str() + "\'\n";
     Nan::ThrowError(err.c_str());
@@ -55,6 +49,8 @@ Encoder::Encoder(std::string format, uint32_t width, uint32_t height)
     std::string err = std::string("Unsupported width \'") + std::to_string(mWidth) + "\'\n";
     Nan::ThrowError(err.c_str());
   }
+
+  mEncoder = new OpenH264Encoder(mWidth, mHeight);
 }
 
 Encoder::~Encoder() {}
@@ -64,24 +60,10 @@ uint32_t Encoder::processFrame (std::shared_ptr<iProcessData> processData) {
   Timer t;
   std::shared_ptr<EncodeProcessData> epd = std::dynamic_pointer_cast<EncodeProcessData>(processData);
 
-  // concatenate source buffers
-  std::shared_ptr<Memory> concatBuf = epd->packer()->concatBuffers(epd->srcBufVec());
-  printf("concat : %.2fms\n", t.delta());
-
-  // format convert to encoder format
-  std::shared_ptr<Memory> convertBuf = epd->packer()->convert(concatBuf); 
-  printf("convert: %.2fms\n", t.delta());
-    
-  // scale to encoder size
-  std::shared_ptr<Memory> scaledBuf = mScaleConverter->scaleConvertFrame (convertBuf, epd->srcWidth(), epd->srcHeight(), 0,
-                                                                          mEncoder->width(), mEncoder->height(), mEncoder->pixFmt());
-  printf("scale  : %.2fms\n", t.delta());
-
   // do the encode
   uint32_t dstBytes = 0;
-  mEncoder->encodeFrame (scaledBuf, epd->dstBuf(), mFrameNum++, &dstBytes);
+  mEncoder->encodeFrame (epd->srcBuf(), epd->dstBuf(), mFrameNum++, &dstBytes);
   printf("encode : %.2fms\n", t.delta());
-  printf("total  : %.2fms\n", t.total());
 
   return dstBytes;
 }
@@ -96,9 +78,6 @@ NAN_METHOD(Encoder::Start) {
   obj->mWorker = new MyWorker(callback);
   AsyncQueueWorker(obj->mWorker);
 
-  obj->mEncoder = new OpenH264Encoder(obj->mWidth, obj->mHeight);
-  obj->mScaleConverter = new ScaleConverter();
-
   info.GetReturnValue().Set(Nan::New(obj->mEncoder->bytesReq()));
 }
 
@@ -109,17 +88,22 @@ NAN_METHOD(Encoder::Encode) {
 
   v8::String::Utf8Value srcFmtString(Nan::To<v8::String>(info[3]).ToLocalChecked());
   std::string srcFmtCode = *srcFmtString;
-  if (srcFmtCode.compare("4175") && srcFmtCode.compare("v210")) {
+  if (srcFmtCode.compare("420P")) {
     std::string err = std::string("Unsupported source format \'") + srcFmtCode.c_str() + "\'\n";
     return Nan::ThrowError(err.c_str());
   }
 
+  if (1 != srcBufArray->Length()) {
+    std::string err = std::string("Encoder requires single source buffer - received ") + std::to_string(srcBufArray->Length()) + "\n";
+    return Nan::ThrowError(err.c_str());
+  }
+  Local<Object> srcBuf = Local<Object>::Cast(srcBufArray->Get(0));
   Local<Object> dstBuf = Local<Object>::Cast(info[4]);
   Encoder* obj = Nan::ObjectWrap::Unwrap<Encoder>(info.Holder());
 
   if (obj->mWorker == NULL)
     Nan::ThrowError("Attempt to encode when worker not started");
-  std::shared_ptr<iProcessData> epd = std::make_shared<EncodeProcessData>(srcBufArray, srcWidth, srcHeight, srcFmtCode, dstBuf);
+  std::shared_ptr<iProcessData> epd = std::make_shared<EncodeProcessData>(srcBuf, srcWidth, srcHeight, srcFmtCode, dstBuf);
   obj->mWorker->doFrame(epd, obj, new Nan::Callback(Local<Function>::Cast(info[5])));
 
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));
@@ -139,7 +123,6 @@ NAN_METHOD(Encoder::Finish) {
   Encoder* obj = Nan::ObjectWrap::Unwrap<Encoder>(info.Holder());
   delete obj->mWorker;
   delete obj->mEncoder;
-  delete obj->mScaleConverter;
   obj->mWorker = NULL;
   info.GetReturnValue().SetUndefined();
 }

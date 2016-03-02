@@ -3,9 +3,11 @@
     {
       "target_name": "codecadon",
       "sources": [ "src/codecadon.cc", 
+                   "src/Concater.cc", 
+                   "src/ScaleConverter.cc", 
                    "src/Encoder.cc", 
                    "src/OpenH264Encoder.cc",
-                   "src/ScaleConverter.cc",
+                   "src/ScaleConverterFF.cc",
                    "src/Packers.cc" ],
       "include_dirs": [ "<!(node -e \"require('nan')\")", "ffmpeg/include" ],
       'conditions': [

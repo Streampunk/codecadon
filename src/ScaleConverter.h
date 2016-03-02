@@ -16,32 +16,57 @@
 #ifndef SCALECONVERTER_H
 #define SCALECONVERTER_H
 
+#include "iProcess.h"
 #include <memory>
-struct SwsContext;
 
 namespace streampunk {
 
-class Memory;
-class ScaleConverter {
+class MyWorker;
+class ScaleConverterFF;
+
+class ScaleConverter : public Nan::ObjectWrap, public iProcess {
 public:
-  ScaleConverter();
+  static NAN_MODULE_INIT(Init);
+
+  // iProcess
+  uint32_t processFrame (std::shared_ptr<iProcessData> processData);
+  
+private:
+  explicit ScaleConverter(std::string format, uint32_t width, uint32_t height);
   ~ScaleConverter();
 
-  void init(uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, 
-            uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt);
-  std::shared_ptr<Memory> scaleConvertFrame (std::shared_ptr<Memory> srcBuf, 
-                                             uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, 
-                                             uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt);
+  static NAN_METHOD(New) {
+    if (info.IsConstructCall()) {
+      v8::String::Utf8Value format(Nan::To<v8::String>(info[0]).ToLocalChecked());
+      uint32_t width = info[1]->IsUndefined() ? 0 : Nan::To<uint32_t>(info[1]).FromJust();
+      uint32_t height = info[2]->IsUndefined() ? 0 : Nan::To<uint32_t>(info[2]).FromJust();
+      ScaleConverter *obj = new ScaleConverter(*format, width, height);
+      obj->Wrap(info.This());
+      info.GetReturnValue().Set(info.This());
+    } else {
+      const int argc = 3;
+      v8::Local<v8::Value> argv[] = {info[0], info[1], info[2]};
+      v8::Local<v8::Function> cons = Nan::New(constructor());
+      info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+    }
+  }
 
-private:
-  SwsContext *mSwsContext;
-  uint32_t mSrcLinesize[4], mDstLinesize[4];
-  uint32_t mSrcWidth;
-  uint32_t mSrcHeight;
-  uint32_t mSrcPixFmt;
-  uint32_t mDstWidth;
-  uint32_t mDstHeight;
-  uint32_t mDstPixFmt;
+  static inline Nan::Persistent<v8::Function> & constructor() {
+    static Nan::Persistent<v8::Function> my_constructor;
+    return my_constructor;
+  }
+
+  static NAN_METHOD(Start);
+  static NAN_METHOD(ScaleConvert);
+  static NAN_METHOD(Quit);
+  static NAN_METHOD(Finish);
+
+  const std::string mFormat;
+  const uint32_t mWidth;
+  const uint32_t mHeight;
+  MyWorker *mWorker;
+  ScaleConverterFF *mScaleConverterFF;
+  uint32_t mDstBytesReq;
 };
 
 } // namespace streampunk

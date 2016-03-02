@@ -4,6 +4,27 @@
 
 namespace streampunk {
 
+uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t height) {
+  uint32_t fmtBytes = 0;
+  if (0 == fmtCode.compare("420P")) {
+    fmtBytes = width * height * 3 / 2;
+  }
+  else if (0 == fmtCode.compare("4175")) {
+    uint32_t pitchBytes = width * 5 / 2;
+    fmtBytes = pitchBytes * height;
+  }
+  else if (0 == fmtCode.compare("v210")) {
+    uint32_t pitchBytes = ((width + 47) / 48) * 48 * 8 / 3;
+    fmtBytes = pitchBytes * height;
+  }
+  else {
+    std::string err = std::string("Unsupported format \'") + fmtCode.c_str() + "\'\n";
+    Nan::ThrowError(err.c_str());
+  }
+
+  return fmtBytes;
+}
+
 void dumpPGroupRaw (uint8_t *pgbuf, uint32_t width, uint32_t numLines) {
   uint8_t *buf = pgbuf;
   for (uint32_t i = 0; i < numLines; ++i) {
@@ -35,20 +56,8 @@ void dump420P (uint8_t *buf, uint32_t width, uint32_t height, uint32_t numLines)
 Packers::Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFmtCode, uint32_t srcBytes, const std::string& dstFmtCode)
   : mSrcWidth(srcWidth), mSrcHeight(srcHeight), mSrcFmtCode(srcFmtCode), mSrcBytes(srcBytes), mDstFmtCode(dstFmtCode) {
 
-  if (0 == mSrcFmtCode.compare("4175")) {
-    uint32_t srcPitchBytes = mSrcWidth * 5 / 2;
-    if (srcPitchBytes * mSrcHeight > mSrcBytes) {
-      Nan::ThrowError("insufficient source buffer for conversion\n");
-    }
-  }
-  else if (0 == mSrcFmtCode.compare("v210")) {
-    uint32_t srcPitchBytes = ((mSrcWidth + 47) / 48) * 48 * 8 / 3;
-    if (srcPitchBytes * mSrcHeight > mSrcBytes) {
-      Nan::ThrowError("insufficient source buffer for conversion\n");
-    }
-  }
-  else
-    Nan::ThrowError("unsupported source packing type\n");
+  if (getFormatBytes(srcFmtCode, srcWidth, srcHeight) > mSrcBytes)
+    Nan::ThrowError("insufficient source buffer for conversion\n");
 
   if (0 != mDstFmtCode.compare("420P"))
     Nan::ThrowError("unsupported destination packing type\n");

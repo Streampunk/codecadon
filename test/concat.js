@@ -79,9 +79,9 @@ concatTest('Perform concatenation', '4175', 1920, 1080, function (t, concater, f
     t.notOk(err, 'no error');
     var testDstBuf = makeBufArray(numBytes, 1)[0];
     t.deepEquals(result, testDstBuf, 'testing concatenation result')   
+    done();
   });
   t.equal(numQueued, 1, 'testing queueing');
-  done();
 });
 
 concatTest('Handle undefined source', '4175', 1920, 1080, function (t, concater, format, width, height, done) {
@@ -90,8 +90,8 @@ concatTest('Handle undefined source', '4175', 1920, 1080, function (t, concater,
   var dstBuf = new Buffer(dstBufLen);
   concater.concat(bufArray, dstBuf, function(err, result) {
     t.ok(err, 'should return error');
+    done();
   });
-  done();
 });
 
 concatTest('Handle undefined destination', '4175', 1920, 1080, function (t, concater, format, width, height, done) {
@@ -101,8 +101,8 @@ concatTest('Handle undefined destination', '4175', 1920, 1080, function (t, conc
   var dstBuf;
   concater.concat(bufArray, dstBuf, function(err, result) {
     t.ok(err, 'should return error');
+    done();
   });
-  done();
 });
 
 concatTest('Handle source bytes greater than destination bytes', '4175', 1920, 1080, function (t, concater, format, width, height, done) {
@@ -114,7 +114,7 @@ concatTest('Handle source bytes greater than destination bytes', '4175', 1920, 1
     t.notOk(err, 'no error');
     var testDstBuf = makeBufArray(numBytes, 1)[0];
     t.deepEquals(result, testDstBuf, 'testing concatenation result')   
+    done();
   });
-  done();
 });
 

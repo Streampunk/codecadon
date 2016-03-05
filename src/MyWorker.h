@@ -63,7 +63,7 @@ public:
 
 private:  
   void Execute(const ExecutionProgress& progress) {
-  // Asynchronous, non-V8 work goes here
+    // Asynchronous, non-V8 work goes here
     while (mActive) {
       std::shared_ptr<WorkParams> wp = mWorkQueue.dequeue();
       if (wp->mProcess)
@@ -73,6 +73,10 @@ private:
       mDoneQueue.enqueue(wp);
       progress.Send(NULL, 0);
     }
+
+    // wait for quit message to be passed to callback
+    std::unique_lock<std::mutex> lk(mMtx);
+    mCv.wait(lk);
   }
   
   void HandleProgressCallback(const char *data, size_t size) {
@@ -82,6 +86,12 @@ private:
       std::shared_ptr<WorkParams> wp = mDoneQueue.dequeue();
       Local<Value> argv[] = { Nan::New(wp->mResultBytes) };
       wp->mCallback->Call(1, argv);
+    }
+
+    // notify the thread to exit
+    if (!mActive) {
+      std::unique_lock<std::mutex> lk(mMtx);
+      mCv.notify_one();
     }
   }
   
@@ -102,6 +112,8 @@ private:
   };
   WorkQueue<std::shared_ptr<WorkParams> > mWorkQueue;
   WorkQueue<std::shared_ptr<WorkParams> > mDoneQueue;
+  std::mutex mMtx;
+  std::condition_variable mCv;
 };
 
 } // namespace streampunk

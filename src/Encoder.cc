@@ -103,6 +103,13 @@ NAN_METHOD(Encoder::Encode) {
   Local<Object> dstBuf = Local<Object>::Cast(info[4]);
   Local<Function> callback = Local<Function>::Cast(info[5]);
 
+  Encoder* obj = Nan::ObjectWrap::Unwrap<Encoder>(info.Holder());
+
+  if ((srcWidth != obj->mWidth) || (srcHeight != obj->mHeight)) {
+    std::string err = std::string("Unsupported dimensions \'") + std::to_string(srcWidth) + "x" + std::to_string(srcHeight) + "\'";
+    return Nan::ThrowError(err.c_str());
+  }
+
   std::string srcFmtCode = *srcFmtString;
   if (srcFmtCode.compare("420P")) {
     std::string err = std::string("Unsupported source format \'") + srcFmtCode.c_str() + "\'";
@@ -114,10 +121,10 @@ NAN_METHOD(Encoder::Encode) {
     return Nan::ThrowError(err.c_str());
   }
   Local<Object> srcBuf = Local<Object>::Cast(srcBufArray->Get(0));
-  Encoder* obj = Nan::ObjectWrap::Unwrap<Encoder>(info.Holder());
 
   if (obj->mWorker == NULL)
     Nan::ThrowError("Attempt to encode when worker not started");
+
   std::shared_ptr<iProcessData> epd = std::make_shared<EncodeProcessData>(srcBuf, srcWidth, srcHeight, srcFmtCode, dstBuf);
   obj->mWorker->doFrame(epd, obj, new Nan::Callback(callback));
 

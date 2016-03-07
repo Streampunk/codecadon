@@ -51,8 +51,6 @@ Encoder::Encoder(std::string format, uint32_t width, uint32_t height)
     Nan::ThrowError(err.c_str());
     return;
   }
-
-  mEncoder = new OpenH264Encoder(mWidth, mHeight);
 }
 
 Encoder::~Encoder() {}
@@ -81,6 +79,7 @@ NAN_METHOD(Encoder::Start) {
   if (obj->mWorker != NULL)
     Nan::ThrowError("Attempt to restart encoder when not idle");
   
+  obj->mEncoder = new OpenH264Encoder(obj->mWidth, obj->mHeight);
   obj->mWorker = new MyWorker(callback);
   AsyncQueueWorker(obj->mWorker);
 

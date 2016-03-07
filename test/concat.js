@@ -81,7 +81,6 @@ concatTest('Perform concatenation', '4175', 1920, 1080, function (t, concater, f
     t.deepEquals(result, testDstBuf, 'testing concatenation result')   
     done();
   });
-  t.equal(numQueued, 1, 'testing queueing');
 });
 
 concatTest('Handle undefined source', '4175', 1920, 1080, function (t, concater, format, width, height, done) {

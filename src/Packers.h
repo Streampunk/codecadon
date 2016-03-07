@@ -26,8 +26,7 @@ class Packers {
 public:
   Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFmtCode, uint32_t srcBytes, const std::string& dstFmtCode);
 
-  std::shared_ptr<Memory> concatBuffers(const tBufVec& bufVec);  
-  std::shared_ptr<Memory> convert(std::shared_ptr<Memory> srcBuf);
+  void convert(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf);
 
 private:  
   void convertPGroupto420P (const uint8_t *const srcBuf, uint8_t *const dstBuf);

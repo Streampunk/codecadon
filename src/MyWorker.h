@@ -86,12 +86,12 @@ private:
       std::shared_ptr<WorkParams> wp = mDoneQueue.dequeue();
       Local<Value> argv[] = { Nan::New(wp->mResultBytes) };
       wp->mCallback->Call(1, argv);
-    }
 
-    // notify the thread to exit
-    if (!mActive) {
-      std::unique_lock<std::mutex> lk(mMtx);
-      mCv.notify_one();
+      if (!wp->mProcess && !mActive) {
+        // notify the thread to exit
+        std::unique_lock<std::mutex> lk(mMtx);
+        mCv.notify_one();
+      }
     }
   }
   

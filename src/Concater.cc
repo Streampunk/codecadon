@@ -100,6 +100,10 @@ NAN_METHOD(Concater::Concat) {
 
   if (obj->mWorker == NULL)
     return Nan::ThrowError("Attempt to concat when worker not started");
+
+  if (obj->mDstBytesReq > node::Buffer::Length(dstBuf))
+    return Nan::ThrowError("Insufficient destination buffer for specified format");
+
   std::shared_ptr<iProcessData> cpd = std::make_shared<ConcatProcessData>(srcBufArray, dstBuf);
   obj->mWorker->doFrame(cpd, obj, new Nan::Callback(callback));
 

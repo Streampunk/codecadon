@@ -50,13 +50,10 @@ void ScaleConverterFF::init(uint32_t srcWidth, uint32_t srcHeight, uint32_t srcP
   mDstLinesize[2] = mDstWidth / 2;
 }
 
-std::shared_ptr<Memory> ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf, 
-                                                             uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, 
-                                                             uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt) {
-
-  if ((srcWidth == dstWidth) && (srcHeight == dstHeight) && (srcPixFmt == dstPixFmt)) {
-    return srcBuf;
-  }
+void ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf, 
+                                          uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt,
+                                          std::shared_ptr<Memory> dstBuf, 
+                                          uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt) {
 
   if ((mSrcWidth != srcWidth) || (mSrcHeight != srcHeight) || (mSrcPixFmt != srcPixFmt) ||
       (mDstWidth != dstWidth) || (mDstHeight != dstHeight) || (mDstPixFmt != dstPixFmt)) {
@@ -69,18 +66,14 @@ std::shared_ptr<Memory> ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Mem
   srcData[1] = (uint8_t *)(srcBuf->buf() + srcLumaBytes);
   srcData[2] = (uint8_t *)(srcBuf->buf() + srcLumaBytes + srcLumaBytes / 4);
 
-  uint32_t dstLumaBytes = mDstLinesize[0] * mDstHeight;
-  std::shared_ptr<Memory> dstBuf = Memory::makeNew(dstLumaBytes * 3 / 2);
-
   uint8_t *dstData[4];
+  uint32_t dstLumaBytes = mDstLinesize[0] * mDstHeight;
   dstData[0] = (uint8_t *)dstBuf->buf();
   dstData[1] = (uint8_t *)(dstBuf->buf() + dstLumaBytes);
   dstData[2] = (uint8_t *)(dstBuf->buf() + dstLumaBytes + dstLumaBytes / 4);
 
   sws_scale(mSwsContext, (const uint8_t * const*)srcData,
             (const int *)mSrcLinesize, 0, mSrcHeight, dstData, (const int *)mDstLinesize);
-
-  return dstBuf;
 }
 
 } // namespace streampunk

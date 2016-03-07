@@ -63,29 +63,14 @@ Packers::Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFm
     Nan::ThrowError("unsupported destination packing type\n");
 }
 
-std::shared_ptr<Memory> Packers::concatBuffers(const tBufVec& bufVec) {
-  std::shared_ptr<Memory> concatBuf = Memory::makeNew(mSrcBytes);
-  uint32_t concatBufOffset = 0;
-  for (tBufVec::const_iterator it = bufVec.begin(); it != bufVec.end(); ++it) {
-    const uint8_t* buf = it->first;
-    uint32_t len = it->second;
-    memcpy (concatBuf->buf() + concatBufOffset, buf, len);
-    concatBufOffset += len;
-  }
-  return concatBuf;
-} 
-
-std::shared_ptr<Memory> Packers::convert(std::shared_ptr<Memory> srcBuf) {
+void Packers::convert(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf) {
   // only 420P supported currently
-  uint32_t lumaBytes = mSrcWidth * mSrcHeight;
-  std::shared_ptr<Memory> convertBuf = Memory::makeNew(lumaBytes * 3 / 2);
   if (0 == mSrcFmtCode.compare("4175")) {
-    convertPGroupto420P (srcBuf->buf(), convertBuf->buf());
+    convertPGroupto420P (srcBuf->buf(), dstBuf->buf());
   }
   else if (0 == mSrcFmtCode.compare("v210")) {
-    convertV210to420P (srcBuf->buf(), convertBuf->buf());
+    convertV210to420P (srcBuf->buf(), dstBuf->buf());
   }
-  return convertBuf;  
 }
 
 // private

@@ -29,9 +29,10 @@ public:
 
   void init(uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, 
             uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt);
-  std::shared_ptr<Memory> scaleConvertFrame (std::shared_ptr<Memory> srcBuf, 
-                                             uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, 
-                                             uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt);
+  void scaleConvertFrame (std::shared_ptr<Memory> srcBuf, 
+                          uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt,
+                          std::shared_ptr<Memory> dstBuf, 
+                          uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt);
 
 private:
   SwsContext *mSwsContext;

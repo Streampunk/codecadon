@@ -14,34 +14,28 @@ namespace streampunk {
 class ConcatProcessData : public iProcessData {
 public:
   ConcatProcessData (Local<Array> srcBufArray, Local<Object> dstBuf)
-    : mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBuf), (uint32_t)node::Buffer::Length(dstBuf))) {
+    : mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBuf), (uint32_t)node::Buffer::Length(dstBuf))), mSrcBytes(0) {
     for (uint32_t i = 0; i < srcBufArray->Length(); ++i) {
       Local<Object> bufferObj = Local<Object>::Cast(srcBufArray->Get(i));
       uint32_t bufLen = (uint32_t)node::Buffer::Length(bufferObj);
       mSrcBufVec.push_back(std::make_pair((uint8_t *)node::Buffer::Data(bufferObj), bufLen)); 
+      mSrcBytes += bufLen;
     }
   }
   ~ConcatProcessData() {}
   
   tBufVec srcBufVec() const { return mSrcBufVec; }
   std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
+  uint32_t srcBytes() const { return mSrcBytes; }
 
 private:
   tBufVec mSrcBufVec;
   std::shared_ptr<Memory> mDstBuf;
+  uint32_t mSrcBytes;
 };
 
 
-Concater::Concater(std::string format, uint32_t width, uint32_t height) 
-  : mFormat(format), mWidth(width), mHeight(height), mWorker(NULL) {
-
-  mDstBytesReq = getFormatBytes(mFormat, mWidth, mHeight);
-  if (!mWidth || (mWidth % 2) || !mHeight) {
-    std::string err = std::string("Unsupported dimensions \'") + std::to_string(mWidth) + "x" + std::to_string(mHeight) + "\'\n";
-    Nan::ThrowError(err.c_str());
-  }
-}
-
+Concater::Concater(uint32_t numBytes) : mNumBytes(numBytes), mWorker(NULL) {}
 Concater::~Concater() {}
 
 // iProcess
@@ -80,7 +74,7 @@ NAN_METHOD(Concater::Start) {
   obj->mWorker = new MyWorker(callback);
   AsyncQueueWorker(obj->mWorker);
 
-  info.GetReturnValue().Set(Nan::New(obj->mDstBytesReq));
+  info.GetReturnValue().Set(Nan::New(obj->mNumBytes));
 }
 
 NAN_METHOD(Concater::Concat) {
@@ -101,10 +95,12 @@ NAN_METHOD(Concater::Concat) {
   if (obj->mWorker == NULL)
     return Nan::ThrowError("Attempt to concat when worker not started");
 
-  if (obj->mDstBytesReq > node::Buffer::Length(dstBuf))
-    return Nan::ThrowError("Insufficient destination buffer for specified format");
-
-  std::shared_ptr<iProcessData> cpd = std::make_shared<ConcatProcessData>(srcBufArray, dstBuf);
+  std::shared_ptr<ConcatProcessData> cpd = std::make_shared<ConcatProcessData>(srcBufArray, dstBuf);
+  if (cpd->srcBytes() > cpd->dstBuf()->numBytes()) {
+    std::string err = std::string("Destination buffer too small: ") + std::to_string(cpd->dstBuf()->numBytes()) + 
+      ", required: " + std::to_string(cpd->srcBytes());
+    return Nan::ThrowError(err.c_str());
+  }
   obj->mWorker->doFrame(cpd, obj, new Nan::Callback(callback));
 
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));

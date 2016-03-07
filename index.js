@@ -22,16 +22,8 @@ var codecAdon = require('bindings')('./Release/codecadon');
 const util = require('util');
 const EventEmitter = require('events');
 
-function Concater(format, width, height) {
-  if (arguments.length !== 3 
-    || typeof format !== 'string' 
-    || typeof width !== 'number' 
-    || typeof height !== 'number') {
-    this.emit('error', new Error('Concater requires three arguments: ' +
-      format));
-  } else {
-    this.concaterAdon = new codecAdon.Concater(format, width, height);
-  }
+function Concater(numBytes) {
+  this.concaterAdon = new codecAdon.Concater(numBytes);
   EventEmitter.call(this);
 }
 
@@ -77,7 +69,7 @@ function ScaleConverter(format, width, height) {
     || typeof format !== 'string' 
     || typeof width !== 'number' 
     || typeof height !== 'number') {
-    this.emit('error', new Error('Concater requires three arguments: ' +
+    this.emit('error', new Error('ScaleConverter requires three arguments: ' +
       format));
   } else {
     this.scaleConverterAdon = new codecAdon.ScaleConverter(format, width, height);

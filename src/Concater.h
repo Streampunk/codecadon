@@ -31,20 +31,18 @@ public:
   uint32_t processFrame (std::shared_ptr<iProcessData> processData);
   
 private:
-  explicit Concater(std::string format, uint32_t width, uint32_t height);
+  explicit Concater(uint32_t numBytes);
   ~Concater();
 
   static NAN_METHOD(New) {
     if (info.IsConstructCall()) {
-      v8::String::Utf8Value format(Nan::To<v8::String>(info[0]).ToLocalChecked());
-      uint32_t width = info[1]->IsUndefined() ? 0 : Nan::To<uint32_t>(info[1]).FromJust();
-      uint32_t height = info[2]->IsUndefined() ? 0 : Nan::To<uint32_t>(info[2]).FromJust();
-      Concater *obj = new Concater(*format, width, height);
+      uint32_t numBytes = Nan::To<uint32_t>(info[0]).FromJust();
+      Concater *obj = new Concater(numBytes);
       obj->Wrap(info.This());
       info.GetReturnValue().Set(info.This());
     } else {
-      const int argc = 3;
-      v8::Local<v8::Value> argv[] = {info[0], info[1], info[2]};
+      const int argc = 1;
+      v8::Local<v8::Value> argv[] = { info[0] };
       v8::Local<v8::Function> cons = Nan::New(constructor());
       info.GetReturnValue().Set(cons->NewInstance(argc, argv));
     }
@@ -60,11 +58,8 @@ private:
   static NAN_METHOD(Quit);
   static NAN_METHOD(Finish);
 
-  const std::string mFormat;
-  const uint32_t mWidth;
-  const uint32_t mHeight;
   MyWorker *mWorker;
-  uint32_t mDstBytesReq;
+  const uint32_t mNumBytes;
 };
 
 } // namespace streampunk

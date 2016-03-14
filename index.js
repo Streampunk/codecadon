@@ -115,6 +115,57 @@ ScaleConverter.prototype.finish = function() {
   this.scaleConverterAdon.finish();
 }
 
+function Decoder (format, width, height) {
+  if (arguments.length !== 3 
+    || typeof format !== 'string' 
+    || typeof width !== 'number' 
+    || typeof height !== 'number') {
+    this.emit('error', new Error('Decoder requires three arguments: ' +
+      format));
+  } else {
+    this.decoderAdon = new codecAdon.Decoder(format, width, height);
+  }
+  EventEmitter.call(this);
+}
+
+util.inherits(Decoder, EventEmitter);
+
+Decoder.prototype.start = function() {
+  try {
+    return this.decoderAdon.start(function() {
+      this.emit('exit');
+    }.bind(this));
+  } catch (err) {
+    this.emit('error', err);
+  }
+}
+
+Decoder.prototype.decode = function(srcBufArray, srcWidth, srcHeight, srcFmtCode, dstBuf, cb) {
+  try {
+    var numQueued = this.decoderAdon.decode(srcBufArray, srcWidth, srcHeight, srcFmtCode, 
+                                            dstBuf, function(resultBytes) {
+      cb(null, resultBytes?dstBuf.slice(0,resultBytes):null);
+    });
+    return numQueued;
+  } catch (err) {
+    cb(err);
+  }
+}
+
+Decoder.prototype.quit = function(cb) {
+  try {
+    this.decoderAdon.quit(function(done) {
+      cb();
+    });
+  } catch (err) {
+    this.emit('error', err);
+  }
+}
+
+Decoder.prototype.finish = function() {
+  this.decoderAdon.finish();
+}
+
 function Encoder (format, width, height) {
   if (arguments.length !== 3 
     || typeof format !== 'string' 
@@ -169,6 +220,7 @@ Encoder.prototype.finish = function() {
 var codecadon = {
    Concater : Concater,
    ScaleConverter : ScaleConverter,
+   Decoder : Decoder,
    Encoder : Encoder
 };
 

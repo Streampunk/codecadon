@@ -2,7 +2,6 @@
 #include "Encoder.h"
 #include "MyWorker.h"
 #include "Timer.h"
-#include "Packers.h"
 #include "Memory.h"
 #include "OpenH264Encoder.h"
 
@@ -14,11 +13,10 @@ namespace streampunk {
 
 class EncodeProcessData : public iProcessData {
 public:
-  EncodeProcessData (Local<Object> srcBuf, uint32_t srcWidth, uint32_t srcHeight, std::string srcFmtCode, Local<Object> dstBuf)
+  EncodeProcessData (Local<Object> srcBuf, uint32_t srcWidth, uint32_t srcHeight, Local<Object> dstBuf)
     : mSrcBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBuf), (uint32_t)node::Buffer::Length(srcBuf))),
       mSrcWidth(srcWidth), mSrcHeight(srcHeight), 
-      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBuf), (uint32_t)node::Buffer::Length(dstBuf))),
-      mPacker(std::make_shared<Packers>(mSrcWidth, mSrcHeight, srcFmtCode, (uint32_t)node::Buffer::Length(srcBuf), "420P"))
+      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBuf), (uint32_t)node::Buffer::Length(dstBuf)))
     { }
   ~EncodeProcessData() { }
   
@@ -26,14 +24,12 @@ public:
   uint32_t srcWidth() const { return mSrcWidth; }
   uint32_t srcHeight() const { return mSrcHeight; }
   std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
-  std::shared_ptr<Packers> packer() const { return mPacker; }
 
 private:
   std::shared_ptr<Memory> mSrcBuf;
   const uint32_t mSrcWidth;
   const uint32_t mSrcHeight;
   std::shared_ptr<Memory> mDstBuf;
-  std::shared_ptr<Packers> mPacker;
 };
 
 
@@ -125,7 +121,7 @@ NAN_METHOD(Encoder::Encode) {
   if (obj->mWorker == NULL)
     Nan::ThrowError("Attempt to encode when worker not started");
 
-  std::shared_ptr<iProcessData> epd = std::make_shared<EncodeProcessData>(srcBuf, srcWidth, srcHeight, srcFmtCode, dstBuf);
+  std::shared_ptr<iProcessData> epd = std::make_shared<EncodeProcessData>(srcBuf, srcWidth, srcHeight, dstBuf);
   obj->mWorker->doFrame(epd, obj, new Nan::Callback(callback));
 
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));

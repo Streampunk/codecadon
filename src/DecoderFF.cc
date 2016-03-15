@@ -14,24 +14,29 @@ namespace streampunk {
 DecoderFF::DecoderFF(uint32_t width, uint32_t height)
   : mWidth(width), mHeight(height), mPixFmt((uint32_t)AV_PIX_FMT_YUV420P),
     mCodec(NULL), mContext(NULL), mFrame(NULL) {
-
-  init();
 }
 
 DecoderFF::~DecoderFF() {
-  av_parser_close(mParserContext);
   av_frame_free(&mFrame);
   avcodec_close(mContext);
   av_free(mContext);
 }
 
-void DecoderFF::init() {
+void DecoderFF::init(const std::string& srcFormat) {
   avcodec_register_all();
   av_log_set_level(AV_LOG_INFO);
 
-  mCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
-  if (!mCodec)
-    return Nan::ThrowError("h264 decoder not found");
+  AVCodecID codecID = AV_CODEC_ID_NONE;
+  if (!srcFormat.compare("h264"))
+    codecID = AV_CODEC_ID_H264;
+  else if (!srcFormat.compare("vp8"))
+    codecID = AV_CODEC_ID_VP8;
+
+  mCodec = avcodec_find_decoder(codecID);
+  if (!mCodec) {
+    std::string err = std::string("Decoder for format \'") + srcFormat.c_str() + "\' not found";
+    return Nan::ThrowError(err.c_str());
+  }
 
   mContext = avcodec_alloc_context3(mCodec);
   if (!mContext)
@@ -39,6 +44,7 @@ void DecoderFF::init() {
 
   mContext->width = mWidth;
   mContext->height = mHeight;
+  mContext->refcounted_frames = 1;
 
   if (avcodec_open2(mContext, mCodec, NULL) < 0)
     return Nan::ThrowError("Could not open codec");
@@ -47,15 +53,20 @@ void DecoderFF::init() {
   if (!mFrame)
     return Nan::ThrowError("Could not allocate video frame");
 
-  mParserContext = av_parser_init(AV_CODEC_ID_H264);
+  mSrcFormat = srcFormat;
 }
 
 uint32_t DecoderFF::bytesReq() const {
   return mWidth * mHeight * 3 / 2;
 }
 
-void DecoderFF::decodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, 
+void DecoderFF::decodeFrame (const std::string& srcFormat, std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, 
                              uint32_t frameNum, uint32_t *pDstBytes) {
+
+  if (mSrcFormat != srcFormat) {
+    init(srcFormat);      
+  }
+
   AVPacket pkt;
   av_init_packet(&pkt);
   pkt.data = srcBuf->buf();

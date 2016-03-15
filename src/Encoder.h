@@ -22,7 +22,7 @@
 namespace streampunk {
 
 class MyWorker;
-class OpenH264Encoder;
+class EncoderFF;
 
 class Encoder : public Nan::ObjectWrap, public iProcess {
 public:
@@ -65,7 +65,7 @@ private:
   const uint32_t mWidth;
   const uint32_t mHeight;
   MyWorker *mWorker;
-  OpenH264Encoder *mEncoder;
+  EncoderFF *mEncoder;
   uint32_t mFrameNum;
 };
 

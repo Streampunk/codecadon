@@ -13,20 +13,22 @@ namespace streampunk {
 
 class DecodeProcessData : public iProcessData {
 public:
-  DecodeProcessData (Local<Object> srcBuf, uint32_t srcWidth, uint32_t srcHeight, Local<Object> dstBuf)
+  DecodeProcessData (Local<Object> srcBuf, const std::string& srcFormat, uint32_t srcWidth, uint32_t srcHeight, Local<Object> dstBuf)
     : mSrcBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBuf), (uint32_t)node::Buffer::Length(srcBuf))),
-      mSrcWidth(srcWidth), mSrcHeight(srcHeight), 
+      mSrcFormat(srcFormat), mSrcWidth(srcWidth), mSrcHeight(srcHeight), 
       mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBuf), (uint32_t)node::Buffer::Length(dstBuf)))
     { }
   ~DecodeProcessData() { }
   
   std::shared_ptr<Memory> srcBuf() const { return mSrcBuf; }
+  std::string srcFormat() const { return mSrcFormat; }
   uint32_t srcWidth() const { return mSrcWidth; }
   uint32_t srcHeight() const { return mSrcHeight; }
   std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
 
 private:
   std::shared_ptr<Memory> mSrcBuf;
+  const std::string mSrcFormat;
   const uint32_t mSrcWidth;
   const uint32_t mSrcHeight;
   std::shared_ptr<Memory> mDstBuf;
@@ -58,7 +60,7 @@ uint32_t Decoder::processFrame (std::shared_ptr<iProcessData> processData) {
 
   // do the decode
   uint32_t dstBytes = 0;
-  mDecoder->decodeFrame (dpd->srcBuf(), dpd->dstBuf(), mFrameNum++, &dstBytes);
+  mDecoder->decodeFrame (dpd->srcFormat(), dpd->srcBuf(), dpd->dstBuf(), mFrameNum++, &dstBytes);
   printf("decode : %.2fms\n", t.delta());
 
   return dstBytes;
@@ -107,7 +109,7 @@ NAN_METHOD(Decoder::Decode) {
   }
 
   std::string srcFmtCode = *srcFmtString;
-  if (srcFmtCode.compare("h264")) {
+  if (srcFmtCode.compare("h264") && srcFmtCode.compare("vp8")) {
     std::string err = std::string("Unsupported source format \'") + srcFmtCode.c_str() + "\'";
     return Nan::ThrowError(err.c_str());
   }
@@ -121,7 +123,7 @@ NAN_METHOD(Decoder::Decode) {
   if (obj->mWorker == NULL)
     Nan::ThrowError("Attempt to decode when worker not started");
 
-  std::shared_ptr<iProcessData> epd = std::make_shared<DecodeProcessData>(srcBuf, srcWidth, srcHeight, dstBuf);
+  std::shared_ptr<iProcessData> epd = std::make_shared<DecodeProcessData>(srcBuf, srcFmtCode, srcWidth, srcHeight, dstBuf);
   obj->mWorker->doFrame(epd, obj, new Nan::Callback(callback));
 
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));

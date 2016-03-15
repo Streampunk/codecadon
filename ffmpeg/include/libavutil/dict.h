@@ -1,5 +1,4 @@
 /*
- *
  * This file is part of FFmpeg.
  *
  * FFmpeg is free software; you can redistribute it and/or
@@ -65,7 +64,6 @@
    }
    av_dict_free(&d);
  @endcode
- *
  */
 
 #define AV_DICT_MATCH_CASE      1   /**< Only get an entry with exact-case key match. Only relevant in av_dict_get(). */
@@ -117,6 +115,9 @@ int av_dict_count(const AVDictionary *m);
  *
  * Note: If AV_DICT_DONT_STRDUP_KEY or AV_DICT_DONT_STRDUP_VAL is set,
  * these arguments will be freed on error.
+ *
+ * Warning: Adding a new entry to a dictionary invalidates all existing entries
+ * previously returned with av_dict_get.
  *
  * @param pm pointer to a pointer to a dictionary struct. If *pm is NULL
  * a dictionary struct is allocated and put in *pm.

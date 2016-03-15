@@ -21,7 +21,6 @@
 struct AVCodec;
 struct AVCodecContext;
 struct AVFrame;
-struct AVCodecParserContext;
 
 namespace streampunk {
 
@@ -36,17 +35,17 @@ public:
   uint32_t height() const { return mHeight; }
   uint32_t pixFmt() const { return mPixFmt; }
   
-  void init();
-  void decodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, uint32_t *pDstBytes);
+  void init(const std::string& srcFormat);
+  void decodeFrame (const std::string& srcFormat, std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, uint32_t *pDstBytes);
 
 private:
+  std::string mSrcFormat;
   const uint32_t mWidth;
   const uint32_t mHeight;
   const uint32_t mPixFmt;
   AVCodec *mCodec;
   AVCodecContext *mContext;
   AVFrame *mFrame;
-  AVCodecParserContext* mParserContext;
 };
 
 

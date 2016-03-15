@@ -10,7 +10,6 @@ export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
   --disable-swresample \
   --disable-postproc \
   --disable-avfilter \
-  --disable-decoders \
   --disable-muxers \
   --disable-demuxers \
   --disable-parsers \
@@ -18,4 +17,5 @@ export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
   --disable-protocols \
   --disable-devices \
   --disable-filters \
-  --enable-libopenh264
+  --enable-libopenh264 \
+  --enable-libvpx

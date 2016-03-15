@@ -70,7 +70,6 @@
  * @{
  * @}
  * @}
- *
  */
 
 /**
@@ -836,6 +835,10 @@ typedef struct RcOverride{
  * Do not skip samples and export skip information as frame side data
  */
 #define AV_CODEC_FLAG2_SKIP_MANUAL    (1 << 29)
+/**
+ * Do not reset ASS ReadOrder field on flush (subtitles decoding)
+ */
+#define AV_CODEC_FLAG2_RO_FLUSH_NOOP  (1 << 30)
 
 /* Unsupported options :
  *              Syntax Arithmetic coding (SAC)
@@ -1403,6 +1406,19 @@ enum AVPacketSideDataType {
      * side data includes updated metadata which appeared in the stream.
      */
     AV_PKT_DATA_METADATA_UPDATE,
+
+    /**
+     * MPEGTS stream ID, this is required to pass the stream ID
+     * information from the demuxer to the corresponding muxer.
+     */
+    AV_PKT_DATA_MPEGTS_STREAM_ID,
+
+    /**
+     * Mastering display metadata (based on SMPTE-2086:2014). This metadata
+     * should be associated with a video stream and containts data in the form
+     * of the AVMasteringDisplayMetadata struct.
+     */
+    AV_PKT_DATA_MASTERING_DISPLAY_METADATA
 };
 
 #define AV_PKT_DATA_QUALITY_FACTOR AV_PKT_DATA_QUALITY_STATS //DEPRECATED
@@ -1653,7 +1669,15 @@ typedef struct AVCodecContext {
      * timebase should be 1/framerate and timestamp increments should be
      * identically 1.
      * This often, but not always is the inverse of the frame rate or field rate
-     * for video.
+     * for video. 1/time_base is not the average frame rate if the frame rate is not
+     * constant.
+     *
+     * Like containers, elementary streams also can store timestamps, 1/time_base
+     * is the unit in which these timestamps are specified.
+     * As example of such codec time base see ISO/IEC 14496-2:2001(E)
+     * vop_time_increment_resolution and fixed_vop_rate
+     * (fixed_vop_rate == 0 implies that it is different from the framerate)
+     *
      * - encoding: MUST be set by user.
      * - decoding: the use of this field for decoding is deprecated.
      *             Use framerate instead.
@@ -2178,7 +2202,6 @@ typedef struct AVCodecContext {
 #endif
 
     /**
-     *
      * - encoding: Set by user.
      * - decoding: unused
      */
@@ -2220,7 +2243,6 @@ typedef struct AVCodecContext {
 #endif
 
     /**
-     *
      * Note: Value depends upon the compare function used for fullpel ME.
      * - encoding: Set by user.
      * - decoding: unused
@@ -3355,6 +3377,30 @@ typedef struct AVCodecContext {
     AVPacketSideData *coded_side_data;
     int            nb_coded_side_data;
 
+    /**
+     * Encoding only.
+     *
+     * For hardware encoders configured to use a hwaccel pixel format, this
+     * field should be set by the caller to a reference to the AVHWFramesContext
+     * describing input frames. AVHWFramesContext.format must be equal to
+     * AVCodecContext.pix_fmt.
+     *
+     * This field should be set before avcodec_open2() is called and is
+     * afterwards owned and managed by libavcodec.
+     */
+    AVBufferRef *hw_frames_ctx;
+
+    /**
+     * Control the form of AVSubtitle.rects[N]->ass
+     * - decoding: set by user
+     * - encoding: unused
+     */
+    int sub_text_format;
+#define FF_SUB_TEXT_FMT_ASS              0
+#if FF_API_ASS_TIMING
+#define FF_SUB_TEXT_FMT_ASS_WITH_TIMINGS 1
+#endif
+
 } AVCodecContext;
 
 AVRational av_codec_get_pkt_timebase         (const AVCodecContext *avctx);
@@ -4169,7 +4215,6 @@ void av_packet_move_ref(AVPacket *dst, AVPacket *src);
  * @param src Source packet
  *
  * @return 0 on success AVERROR on failure.
- *
  */
 int av_packet_copy_props(AVPacket *dst, const AVPacket *src);
 
@@ -5208,7 +5253,8 @@ AVBitStreamFilterContext *av_bitstream_filter_init(const char *name);
  * If the return value is 0, the output buffer is not allocated and
  * should be considered identical to the input buffer, or in case
  * *poutbuf was set it points to the input buffer (not necessarily to
- * its starting address).
+ * its starting address). A special case is if *poutbuf was set to NULL and
+ * *poutbuf_size was set to 0, which indicates the packet should be dropped.
  */
 int av_bitstream_filter_filter(AVBitStreamFilterContext *bsfc,
                                AVCodecContext *avctx, const char *args,

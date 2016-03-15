@@ -3,7 +3,7 @@
 #include "MyWorker.h"
 #include "Timer.h"
 #include "Memory.h"
-#include "OpenH264Encoder.h"
+#include "EncoderFF.h"
 
 #include <memory>
 
@@ -37,7 +37,7 @@ Encoder::Encoder(std::string format, uint32_t width, uint32_t height)
   : mFormat(format), mWidth(width), mHeight(height),
     mWorker(NULL), mFrameNum(0) {
 
-  if (mFormat.compare("h264")) {
+  if (mFormat.compare("h264") && mFormat.compare("vp8")) {
     std::string err = std::string("Unsupported codec type \'") + mFormat.c_str() + "\'";
     Nan::ThrowError(err.c_str());
     return;
@@ -75,7 +75,7 @@ NAN_METHOD(Encoder::Start) {
   if (obj->mWorker != NULL)
     Nan::ThrowError("Attempt to restart encoder when not idle");
   
-  obj->mEncoder = new OpenH264Encoder(obj->mWidth, obj->mHeight);
+  obj->mEncoder = new EncoderFF(obj->mFormat, obj->mWidth, obj->mHeight);
   obj->mWorker = new MyWorker(callback);
   AsyncQueueWorker(obj->mWorker);
 

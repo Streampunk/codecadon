@@ -8,7 +8,7 @@
                    "src/Decoder.cc",
                    "src/Encoder.cc",
                    "src/DecoderFF.cc",
-                   "src/OpenH264Encoder.cc",
+                   "src/EncoderFF.cc",
                    "src/ScaleConverterFF.cc",
                    "src/Packers.cc" ],
       "include_dirs": [ "<!(node -e \"require('nan')\")", "ffmpeg/include" ],

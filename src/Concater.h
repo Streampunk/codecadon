@@ -58,8 +58,8 @@ private:
   static NAN_METHOD(Quit);
   static NAN_METHOD(Finish);
 
-  MyWorker *mWorker;
   const uint32_t mNumBytes;
+  MyWorker *mWorker;
 };
 
 } // namespace streampunk

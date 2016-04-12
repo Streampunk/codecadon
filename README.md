@@ -51,6 +51,7 @@ Contributions can be made via pull requests and will be considered by the author
 ## License
 
 This software is released under the Apache 2.0 license. Copyright 2016 Christine S MacNeill.
+
 This software uses libraries from the FFmpeg project under the LGPLv3.
 
 Copies of the licenses pertaining to libraries used in this software can be found in the licences folder. 

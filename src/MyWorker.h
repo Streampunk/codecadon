@@ -104,6 +104,7 @@ private:
   struct WorkParams {
     WorkParams(std::shared_ptr<iProcessData> processData, iProcess *process, Nan::Callback *callback)
       : mProcessData(processData), mProcess(process), mCallback(callback), mResultBytes(0) {}
+    ~WorkParams() { delete mCallback; }
 
     std::shared_ptr<iProcessData> mProcessData;
     iProcess *mProcess;

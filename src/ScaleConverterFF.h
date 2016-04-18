@@ -43,6 +43,8 @@ private:
   uint32_t mDstWidth;
   uint32_t mDstHeight;
   uint32_t mDstPixFmt;
+
+  void scaleConvertField (uint8_t **srcData, uint8_t **dstData, uint32_t field);
 };
 
 } // namespace streampunk

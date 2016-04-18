@@ -28,6 +28,11 @@ ScaleConverterFF::ScaleConverterFF()
   : mSwsContext(NULL), 
     mSrcWidth(0), mSrcHeight(0), mSrcPixFmt(0),
     mDstWidth(0), mDstHeight(0), mDstPixFmt(0) {
+
+  for (uint32_t i = 0; i < 4; ++i) {
+    mSrcLinesize[i] = 0;
+    mDstLinesize[i] = 0;
+  }
 }
 
 ScaleConverterFF::~ScaleConverterFF() {
@@ -65,6 +70,22 @@ void ScaleConverterFF::init(uint32_t srcWidth, uint32_t srcHeight, uint32_t srcP
   mDstLinesize[2] = mDstWidth / 2;
 }
 
+void ScaleConverterFF::scaleConvertField (uint8_t **srcData, uint8_t **dstData, uint32_t field) {
+
+  const uint8_t *srcBuf[4];
+  uint8_t *dstBuf[4];
+  uint32_t srcStride[4], dstStride[4];
+
+  for (uint32_t i = 0; i < 4; ++i) {
+    srcStride[i] = mSrcLinesize[i] * 2;
+    dstStride[i] = mDstLinesize[i] * 2;
+    srcBuf[i] = srcData[i] + field * mSrcLinesize[i];
+    dstBuf[i] = dstData[i] + field * mDstLinesize[i];
+  }
+
+  sws_scale(mSwsContext, srcBuf, (const int *)srcStride, 0, mSrcHeight/2, dstBuf, (const int *)dstStride);
+}
+
 void ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf, 
                                           uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt,
                                           std::shared_ptr<Memory> dstBuf, 
@@ -80,15 +101,23 @@ void ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf,
   srcData[0] = (uint8_t *)srcBuf->buf();
   srcData[1] = (uint8_t *)(srcBuf->buf() + srcLumaBytes);
   srcData[2] = (uint8_t *)(srcBuf->buf() + srcLumaBytes + srcLumaBytes / 4);
+  srcData[3] = NULL;
 
   uint8_t *dstData[4];
   uint32_t dstLumaBytes = mDstLinesize[0] * mDstHeight;
   dstData[0] = (uint8_t *)dstBuf->buf();
   dstData[1] = (uint8_t *)(dstBuf->buf() + dstLumaBytes);
   dstData[2] = (uint8_t *)(dstBuf->buf() + dstLumaBytes + dstLumaBytes / 4);
+  dstData[3] = NULL;
 
-  sws_scale(mSwsContext, (const uint8_t * const*)srcData,
-            (const int *)mSrcLinesize, 0, mSrcHeight, dstData, (const int *)mDstLinesize);
+  bool interlace = true;
+  if (interlace) {
+    scaleConvertField (srcData, dstData, 0);
+    scaleConvertField (srcData, dstData, 1);
+  } else {
+    sws_scale(mSwsContext, (const uint8_t * const*)srcData,
+              (const int *)mSrcLinesize, 0, mSrcHeight, dstData, (const int *)mDstLinesize);
+  }
 }
 
 } // namespace streampunk

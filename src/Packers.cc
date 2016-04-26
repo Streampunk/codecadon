@@ -24,7 +24,7 @@ uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t hei
   if (0 == fmtCode.compare("420P")) {
     fmtBytes = width * height * 3 / 2;
   }
-  else if (0 == fmtCode.compare("4175")) {
+  else if (0 == fmtCode.compare("pgroup")) {
     uint32_t pitchBytes = width * 5 / 2;
     fmtBytes = pitchBytes * height;
   }
@@ -68,11 +68,8 @@ void dump420P (uint8_t *buf, uint32_t width, uint32_t height, uint32_t numLines)
   }  
 }
 
-Packers::Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFmtCode, uint32_t srcBytes, const std::string& dstFmtCode)
-  : mSrcWidth(srcWidth), mSrcHeight(srcHeight), mSrcFmtCode(srcFmtCode), mSrcBytes(srcBytes), mDstFmtCode(dstFmtCode) {
-
-  if (getFormatBytes(srcFmtCode, srcWidth, srcHeight) > mSrcBytes)
-    Nan::ThrowError("insufficient source buffer for conversion\n");
+Packers::Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFmtCode, const std::string& dstFmtCode)
+  : mSrcWidth(srcWidth), mSrcHeight(srcHeight), mSrcFmtCode(srcFmtCode), mDstFmtCode(dstFmtCode) {
 
   if (0 != mDstFmtCode.compare("420P"))
     Nan::ThrowError("unsupported destination packing type\n");
@@ -80,7 +77,7 @@ Packers::Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFm
 
 void Packers::convert(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf) {
   // only 420P supported currently
-  if (0 == mSrcFmtCode.compare("4175")) {
+  if (0 == mSrcFmtCode.compare("pgroup")) {
     convertPGroupto420P (srcBuf->buf(), dstBuf->buf());
   }
   else if (0 == mSrcFmtCode.compare("v210")) {

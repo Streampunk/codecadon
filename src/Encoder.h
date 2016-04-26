@@ -23,6 +23,7 @@ namespace streampunk {
 
 class MyWorker;
 class EncoderFF;
+class EssenceInfo;
 
 class Encoder : public Nan::ObjectWrap, public iProcess {
 public:
@@ -32,15 +33,17 @@ public:
   uint32_t processFrame (std::shared_ptr<iProcessData> processData);
   
 private:
-  explicit Encoder(std::string format, uint32_t width, uint32_t height);
+  explicit Encoder(Nan::Callback *callback);
   ~Encoder();
+
+  void doSetInfo(v8::Local<v8::Object> srcTags, v8::Local<v8::Object> dstTags);
 
   static NAN_METHOD(New) {
     if (info.IsConstructCall()) {
-      v8::String::Utf8Value format(Nan::To<v8::String>(info[0]).ToLocalChecked());
-      uint32_t width = info[1]->IsUndefined() ? 0 : Nan::To<uint32_t>(info[1]).FromJust();
-      uint32_t height = info[2]->IsUndefined() ? 0 : Nan::To<uint32_t>(info[2]).FromJust();
-      Encoder *obj = new Encoder(*format, width, height);
+      if (!((info.Length() == 1) && (info[0]->IsFunction())))
+        return Nan::ThrowError("Concater constructor requires a valid callback as the parameter");
+      Nan::Callback *callback = new Nan::Callback(v8::Local<v8::Function>::Cast(info[0]));
+      Encoder *obj = new Encoder(callback);
       obj->Wrap(info.This());
       info.GetReturnValue().Set(info.This());
     } else {
@@ -56,17 +59,15 @@ private:
     return my_constructor;
   }
 
-  static NAN_METHOD(Start);
+  static NAN_METHOD(SetInfo);
   static NAN_METHOD(Encode);
   static NAN_METHOD(Quit);
-  static NAN_METHOD(Finish);
 
-  const std::string mFormat;
-  const uint32_t mWidth;
-  const uint32_t mHeight;
   MyWorker *mWorker;
   EncoderFF *mEncoder;
   uint32_t mFrameNum;
+  std::shared_ptr<EssenceInfo> mSrcVidInfo;
+  std::shared_ptr<EssenceInfo> mDstVidInfo;
 };
 
 } // namespace streampunk

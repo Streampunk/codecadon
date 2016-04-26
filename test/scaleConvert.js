@@ -68,111 +68,175 @@ function make420PBuf(width, height) {
   return buf;
 }
 
+function makeTags(width, height, packing, interlace) {
+  this.tags = [];
+  this.tags["width"] = [ `${width}` ];
+  this.tags["height"] = [ `${height}` ];
+  this.tags["packing"] = [ packing ];
+  this.tags["interlace"] = [ `${interlace}` ];
+  return tags;
+}
 
-function scaleConvertTest(description, format, width, height, fn) {
+function scaleConvertTest(description, onErr, fn) {
   test(description, function (t) {
-    var scaleConverter = new codecadon.ScaleConverter(format, width, height);
-    scaleConverter.on('exit', function() {
-      scaleConverter.finish();
+    var scaleConverter = new codecadon.ScaleConverter(function() {
       t.end();
     });
     scaleConverter.on('error', function(err) {
-      t.fail(err); 
+      onErr(t, err);
     });
 
-    fn(t, scaleConverter, format, width, height, function() {
-      scaleConverter.quit(function() {});
+    fn(t, scaleConverter, function() {
+      scaleConverter.quit(function(err, result) {});
     });
   });
 };
 
-function createBad1() {
-  new codecadon.ScaleConverter('420P', 21, 0);
-};
-function createBad2() {
-  new codecadon.ScaleConverter('4175', 1920, 1080);
-};
-
-test('Handle bad image dimensions', function (t) {
-  t.throws(createBad1);
-  t.end();
-});
-
-test('Handle bad image format', function (t) {
-  t.throws(createBad2);
-  t.end();
-});
-
-scaleConvertTest('Startup a scaleConverter', '420P', 1920, 1080, function (t, scaleConverter, dstFormat, dstWidth, dstHeight, done) {
-  var dstBufLen = scaleConverter.start();
-  var numBytesExpected = dstWidth * dstHeight * 3/2;
-  t.equal(dstBufLen, numBytesExpected, 'testing buffer size calculation');
-  done();
-});
-
-scaleConvertTest('Perform packing', '420P', 1920, 1080, function (t, scaleConverter, dstFormat, dstWidth, dstHeight, done) {
-  var srcWidth = 1920;
-  var srcHeight = 1080;
-  var srcFormat = '4175';
-  var bufArray = make4175BufArray(srcWidth, srcHeight);
-  var dstBufLen = scaleConverter.start();
-  var dstBuf = new Buffer(dstBufLen);
-  var numQueued = scaleConverter.scaleConvert(bufArray, srcWidth, srcHeight, srcFormat, dstBuf, function(err, result) {
-    t.notOk(err, 'no error');
-    var testDstBuf = make420PBuf(dstWidth, dstHeight);
-    t.deepEquals(result, testDstBuf, 'testing packing result')   
+scaleConvertTest('Handling bad image dimensions', 
+  function (t, err) {
+    t.ok(err, 'emits error');
+  }, 
+  function (t, scaleConverter, done) {
+    var srcTags = makeTags(1280, 720, 'pgroup', 0);
+    var dstTags = makeTags(21, 0, '420P', 0);
+    t.throws(scaleConverter.setInfo(srcTags, dstTags));
     done();
   });
-});
 
-scaleConvertTest('Perform scaling', '420P', 1280, 720, function (t, scaleConverter, dstFormat, dstWidth, dstHeight, done) {
-  var srcWidth = 1920;
-  var srcHeight = 1080;
-  var srcFormat = '4175';
-  var bufArray = make4175BufArray(srcWidth, srcHeight);
-  var dstBufLen = scaleConverter.start();
-  var dstBuf = new Buffer(dstBufLen);
-  var numQueued = scaleConverter.scaleConvert(bufArray, srcWidth, srcHeight, srcFormat, dstBuf, function(err, result) {
-    t.notOk(err, 'no error');
-    var testDstBuf = make420PBuf(dstWidth, dstHeight);
-    t.deepEquals(result, testDstBuf, 'testing scaling result')   
+scaleConvertTest('Handling bad image format',
+  function (t, err) {
+    t.ok(err, 'emits error');
+  }, 
+  function (t, scaleConverter, done) {
+    var srcTags = makeTags(1280, 720, 'pgroup', 0);
+    var dstTags = makeTags(1920, 1080, 'pgroup', 0);
+    t.throws(scaleConverter.setInfo(srcTags, dstTags));
     done();
   });
-});
 
-scaleConvertTest('Handle undefined source', '420P', 1920, 1080, function (t, scaleConverter, dstFormat, dstWidth, dstHeight, done) {
-  var bufArray;
-  var dstBufLen = scaleConverter.start();
-  var dstBuf = new Buffer(dstBufLen);
-  scaleConverter.scaleConvert(bufArray, 1920, 1080, '4175', dstBuf, function(err, result) {
-    t.ok(err, 'should return error');
+scaleConvertTest('Starting up a scaleConverter', 
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, scaleConverter, done) {
+    var dstWidth = 1920;
+    var dstHeight = 1080;
+    var srcTags = makeTags(1280, 720, 'pgroup', 0);
+    var dstTags = makeTags(dstWidth, dstHeight, '420P', 0);
+  
+    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
+    var numBytesExpected = dstWidth * dstHeight * 3/2;
+    t.equal(dstBufLen, numBytesExpected, 'buffer size calculation matches the expected value');
     done();
   });
-});
 
-scaleConvertTest('Handle undefined destination', '420P', 1920, 1080, function (t, scaleConverter, dstFormat, dstWidth, dstHeight, done) {
-  var srcWidth = 1920;
-  var srcHeight = 1080;
-  var srcFormat = '4175';
-  var bufArray = make4175BufArray(srcWidth, srcHeight);
-  scaleConverter.start();
-  var dstBuf;
-  scaleConverter.scaleConvert(bufArray, srcWidth, srcHeight, srcFormat, dstBuf, function(err, result) {
-    t.ok(err, 'should return error');
-    done();
+scaleConvertTest('Performing packing',
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, scaleConverter, done) {
+    var width = 1920;
+    var height = 1080;
+    var srcTags = makeTags(width, height, 'pgroup', 0);
+    var dstTags = makeTags(width, height, '420P', 0);
+    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
+
+    var bufArray = make4175BufArray(width, height);
+    var dstBuf = new Buffer(dstBufLen);
+    var numQueued = scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
+      t.notOk(err, 'no error expected');
+      var testDstBuf = make420PBuf(width, height);
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      done();
+    });
   });
-});
 
-scaleConvertTest('Handle insufficient destination bytes', '420P', 1920, 1080, function (t, scaleConverter, dstFormat, dstWidth, dstHeight, done) {
-  var srcWidth = 1920;
-  var srcHeight = 1080;
-  var srcFormat = '4175';
-  var bufArray = make4175BufArray(srcWidth, srcHeight);
-  var dstBufLen = scaleConverter.start();
-  var dstBuf = new Buffer(dstBufLen - 128);
-  scaleConverter.scaleConvert(bufArray, srcWidth, srcHeight, srcFormat, dstBuf, function(err, result) {
-    t.ok(err, 'should return error');
-    done();
+scaleConvertTest('Performing scaling',
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, scaleConverter, done) {
+    var srcWidth = 1920;
+    var srcHeight = 1080;
+    var srcFormat = 'pgroup';
+    var dstWidth = 1280;
+    var dstHeight = 720;
+    var dstFormat = '420P';
+    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 1);
+    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 1);
+    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
+    var bufArray = make4175BufArray(srcWidth, srcHeight);
+    var dstBuf = new Buffer(dstBufLen);
+    var numQueued = scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
+      t.notOk(err, 'no error expected');
+      var testDstBuf = make420PBuf(dstWidth, dstHeight);
+      t.deepEquals(result, testDstBuf, 'matches the expected scaling result')   
+      done();
+    });
   });
-});
 
+scaleConvertTest('Handling undefined source',
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, scaleConverter, done) {
+    var bufArray;
+    var srcWidth = 1920;
+    var srcHeight = 1080;
+    var srcFormat = 'pgroup';
+    var dstWidth = 1920;
+    var dstHeight = 1080;
+    var dstFormat = '420P';
+    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
+    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
+    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
+    var dstBuf = new Buffer(dstBufLen);
+    scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
+      t.ok(err, 'should return error');
+      done();
+    });
+  });
+
+scaleConvertTest('Handling undefined destination', 
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, scaleConverter, done) {
+    var srcWidth = 1920;
+    var srcHeight = 1080;
+    var srcFormat = 'pgroup';
+    var dstWidth = 1920;
+    var dstHeight = 1080;
+    var dstFormat = '420P';
+    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
+    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
+    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
+    var bufArray = make4175BufArray(srcWidth, srcHeight);
+    var dstBuf;
+    scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
+      t.ok(err, 'should return error');
+      done();
+    });
+  });
+
+scaleConvertTest('Handling insufficient destination bytes', 
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, scaleConverter, done) {
+    var srcWidth = 1920;
+    var srcHeight = 1080;
+    var srcFormat = 'pgroup';
+    var dstWidth = 1920;
+    var dstHeight = 1080;
+    var dstFormat = '420P';
+    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
+    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
+    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
+    var bufArray = make4175BufArray(srcWidth, srcHeight);
+    var dstBuf = new Buffer(dstBufLen - 128);
+    scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
+      t.ok(err, 'should return error');
+      done();
+    });
+  });

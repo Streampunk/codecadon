@@ -29,11 +29,16 @@ function makeBufArray(bytesPerBuf, numBuffers) {
   return a;
 }
 
+function makeTags(width, height) {
+  this.tags = [];
+  this.tags["width"] = [ `${width}` ];
+  this.tags["height"] = [ `${height}` ];
+  return tags;
+}
+
 function concatTest(description, fn) {
   test(description, function (t) {
-    var concater = new codecadon.Concater;
-    concater.on('exit', function() {
-      concater.finish();
+    var concater = new codecadon.Concater(function() {
       t.end();
     });
     concater.on('error', function(err) { 
@@ -41,32 +46,33 @@ function concatTest(description, fn) {
     });
 
     fn(t, concater, function() {
-      concater.quit(function() {});
+      concater.quit(function(err, result) {});
     });
   });
 };
 
-concatTest('Perform concatenation', function (t, concater, done) {
+concatTest('Performing concatenation', function (t, concater, done) {
   var width = 1920;
   var height = 1080;
-  var numBytes = width * height * 5/2;
-  var bufArray = makeBufArray(numBytes / width, width);
-  concater.start();
+  var numBuffers = 128;
+  var tags = makeTags(width, height);
+  var numBytes = concater.setInfo(tags);
+  var bufArray = makeBufArray(numBytes / numBuffers, numBuffers);
   var dstBuf = new Buffer(numBytes);
   concater.concat(bufArray, dstBuf, function(err, result) {
-    t.notOk(err, 'no error');
+    t.notOk(err, 'no error expected');
     var testDstBuf = makeBufArray(numBytes, 1)[0];
-    t.deepEquals(result, testDstBuf, 'testing concatenation result')   
+    t.deepEquals(result, testDstBuf, 'matches the expected concatenation result')   
     done();
   });
 });
 
-concatTest('Handle undefined source', function (t, concater, done) {
+concatTest('Handling an undefined source buffer array', function (t, concater, done) {
   var width = 1920;
   var height = 1080;
-  var numBytes = width * height * 5/2;
+  var tags = makeTags(width, height);
+  var numBytes = concater.setInfo(tags);
   var bufArray;
-  concater.start();
   var dstBuf = new Buffer(numBytes);
   concater.concat(bufArray, dstBuf, function(err, result) {
     t.ok(err, 'should return error');
@@ -74,12 +80,13 @@ concatTest('Handle undefined source', function (t, concater, done) {
   });
 });
 
-concatTest('Handle undefined destination', function (t, concater, done) {
+concatTest('Handling an undefined destination buffer', function (t, concater, done) {
   var width = 1920;
   var height = 1080;
-  var numBytes = width * height * 5/2;
-  var bufArray = makeBufArray(numBytes / width, width);
-  concater.start();
+  var numBuffers = 128;
+  var tags = makeTags(width, height);
+  var numBytes = concater.setInfo(tags);
+  var bufArray = makeBufArray(numBytes, numBuffers);
   var dstBuf;
   concater.concat(bufArray, dstBuf, function(err, result) {
     t.ok(err, 'should return error');
@@ -87,12 +94,13 @@ concatTest('Handle undefined destination', function (t, concater, done) {
   });
 });
 
-concatTest('Handle source bytes greater than destination bytes', function (t, concater, done) {
+concatTest('Handling source buffer array bytes being greater than destination bytes', function (t, concater, done) {
   var width = 1920;
   var height = 1080;
-  var numBytes = width * height * 5/2;
-  var bufArray = makeBufArray(numBytes / width, width + 10);
-  concater.start();
+  var numBuffers = 128;
+  var tags = makeTags(width, height);
+  var numBytes = concater.setInfo(tags);
+  var bufArray = makeBufArray(numBytes, numBuffers + 10);
   var dstBuf = new Buffer(numBytes);
   concater.concat(bufArray, dstBuf, function(err, result) {
     t.ok(err, 'should return error');

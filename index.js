@@ -22,18 +22,16 @@ var codecAdon = require('bindings')('./Release/codecadon');
 const util = require('util');
 const EventEmitter = require('events');
 
-function Concater(numBytes) {
-  this.concaterAdon = new codecAdon.Concater(numBytes);
+function Concater(cb) {
+  this.concaterAdon = new codecAdon.Concater(cb);
   EventEmitter.call(this);
 }
 
 util.inherits(Concater, EventEmitter);
 
-Concater.prototype.start = function() {
+Concater.prototype.setInfo = function(srcTags) {
   try {
-    return this.concaterAdon.start(function() {
-      this.emit('exit');
-    }.bind(this));
+    return this.concaterAdon.setInfo(srcTags);
   } catch (err) {
     this.emit('error', err);
   }
@@ -41,8 +39,8 @@ Concater.prototype.start = function() {
 
 Concater.prototype.concat = function(srcBufArray, dstBuf, cb) {
   try {
-    var numQueued = this.concaterAdon.concat(srcBufArray, dstBuf, function(resultBytes) {
-      cb(null, resultBytes?dstBuf.slice(0,resultBytes):null);
+    var numQueued = this.concaterAdon.concat(srcBufArray, dstBuf, function(err, resultBytes) {
+      cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
   } catch (err) {
@@ -52,48 +50,34 @@ Concater.prototype.concat = function(srcBufArray, dstBuf, cb) {
 
 Concater.prototype.quit = function(cb) {
   try {
-    this.concaterAdon.quit(function(done) {
-      cb();
+    this.concaterAdon.quit(function(err, resultBytes) {
+      cb(err, resultBytes);
     });
   } catch (err) {
     this.emit('error', err);
   }
 }
 
-Concater.prototype.finish = function() {
-  this.concaterAdon.finish();
-}
 
-function ScaleConverter(format, width, height) {
-  if (arguments.length !== 3 
-    || typeof format !== 'string' 
-    || typeof width !== 'number' 
-    || typeof height !== 'number') {
-    this.emit('error', new Error('ScaleConverter requires three arguments: ' +
-      format));
-  } else {
-    this.scaleConverterAdon = new codecAdon.ScaleConverter(format, width, height);
-  }
+function ScaleConverter(cb) {
+  this.scaleConverterAdon = new codecAdon.ScaleConverter(cb);
   EventEmitter.call(this);
 }
 
 util.inherits(ScaleConverter, EventEmitter);
 
-ScaleConverter.prototype.start = function() {
+ScaleConverter.prototype.setInfo = function(srcTags, dstTags) {
   try {
-    return this.scaleConverterAdon.start(function() {
-      this.emit('exit');
-    }.bind(this));
+    return this.scaleConverterAdon.setInfo(srcTags, dstTags);
   } catch (err) {
     this.emit('error', err);
   }
 }
 
-ScaleConverter.prototype.scaleConvert = function(srcBufArray, srcWidth, srcHeight, srcFmtCode, dstBuf, cb) {
+ScaleConverter.prototype.scaleConvert = function(srcBufArray, dstBuf, cb) {
   try {
-    var numQueued = this.scaleConverterAdon.scaleConvert(srcBufArray, srcWidth, srcHeight, srcFmtCode, 
-                                                         dstBuf, function(resultBytes) {
-      cb(null, resultBytes?dstBuf.slice(0,resultBytes):null);
+    var numQueued = this.scaleConverterAdon.scaleConvert(srcBufArray, dstBuf, function(err, resultBytes) {
+      cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
   } catch (err) {
@@ -103,48 +87,34 @@ ScaleConverter.prototype.scaleConvert = function(srcBufArray, srcWidth, srcHeigh
 
 ScaleConverter.prototype.quit = function(cb) {
   try {
-    this.scaleConverterAdon.quit(function(done) {
-      cb();
+    this.scaleConverterAdon.quit(function(err, resultBytes) {
+      cb(err, resultBytes);
     });
   } catch (err) {
     this.emit('error', err);
   }
 }
 
-ScaleConverter.prototype.finish = function() {
-  this.scaleConverterAdon.finish();
-}
 
-function Decoder (format, width, height) {
-  if (arguments.length !== 3 
-    || typeof format !== 'string' 
-    || typeof width !== 'number' 
-    || typeof height !== 'number') {
-    this.emit('error', new Error('Decoder requires three arguments: ' +
-      format));
-  } else {
-    this.decoderAdon = new codecAdon.Decoder(format, width, height);
-  }
+function Decoder (cb) {
+  this.decoderAdon = new codecAdon.Decoder(cb);
   EventEmitter.call(this);
 }
 
 util.inherits(Decoder, EventEmitter);
 
-Decoder.prototype.start = function() {
+Decoder.prototype.setInfo = function(srcTags, dstTags) {
   try {
-    return this.decoderAdon.start(function() {
-      this.emit('exit');
-    }.bind(this));
+    return this.decoderAdon.setInfo(srcTags, dstTags);
   } catch (err) {
     this.emit('error', err);
   }
 }
 
-Decoder.prototype.decode = function(srcBufArray, srcWidth, srcHeight, srcFmtCode, dstBuf, cb) {
+Decoder.prototype.decode = function(srcBufArray, dstBuf, cb) {
   try {
-    var numQueued = this.decoderAdon.decode(srcBufArray, srcWidth, srcHeight, srcFmtCode, 
-                                            dstBuf, function(resultBytes) {
-      cb(null, resultBytes?dstBuf.slice(0,resultBytes):null);
+    var numQueued = this.decoderAdon.decode(srcBufArray, dstBuf, function(err, resultBytes) {
+      cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
   } catch (err) {
@@ -154,48 +124,34 @@ Decoder.prototype.decode = function(srcBufArray, srcWidth, srcHeight, srcFmtCode
 
 Decoder.prototype.quit = function(cb) {
   try {
-    this.decoderAdon.quit(function(done) {
-      cb();
+    this.decoderAdon.quit(function(err, resultBytes) {
+      cb(err, resultBytes);
     });
   } catch (err) {
     this.emit('error', err);
   }
 }
 
-Decoder.prototype.finish = function() {
-  this.decoderAdon.finish();
-}
 
-function Encoder (format, width, height) {
-  if (arguments.length !== 3 
-    || typeof format !== 'string' 
-    || typeof width !== 'number' 
-    || typeof height !== 'number') {
-    this.emit('error', new Error('Encoder requires three arguments: ' +
-      format));
-  } else {
-    this.encoderAdon = new codecAdon.Encoder(format, width, height);
-  }
+function Encoder (cb) {
+  this.encoderAdon = new codecAdon.Encoder(cb);
   EventEmitter.call(this);
 }
 
 util.inherits(Encoder, EventEmitter);
 
-Encoder.prototype.start = function() {
+Encoder.prototype.setInfo = function(srcTags, dstTags) {
   try {
-    return this.encoderAdon.start(function() {
-      this.emit('exit');
-    }.bind(this));
+    return this.encoderAdon.setInfo(srcTags, dstTags);
   } catch (err) {
     this.emit('error', err);
   }
 }
 
-Encoder.prototype.encode = function(srcBufArray, srcWidth, srcHeight, srcFmtCode, dstBuf, cb) {
+Encoder.prototype.encode = function(srcBufArray, dstBuf, cb) {
   try {
-    var numQueued = this.encoderAdon.encode(srcBufArray, srcWidth, srcHeight, srcFmtCode, 
-                                            dstBuf, function(resultBytes) {
-      cb(null, resultBytes?dstBuf.slice(0,resultBytes):null);
+    var numQueued = this.encoderAdon.encode(srcBufArray, dstBuf, function(err, resultBytes) {
+      cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
   } catch (err) {
@@ -205,16 +161,12 @@ Encoder.prototype.encode = function(srcBufArray, srcWidth, srcHeight, srcFmtCode
 
 Encoder.prototype.quit = function(cb) {
   try {
-    this.encoderAdon.quit(function(done) {
-      cb();
+    this.encoderAdon.quit(function(err, resultBytes) {
+      cb(err, resultBytes);
     });
   } catch (err) {
     this.emit('error', err);
   }
-}
-
-Encoder.prototype.finish = function() {
-  this.encoderAdon.finish();
 }
 
 var codecadon = {

@@ -39,18 +39,21 @@ ScaleConverterFF::~ScaleConverterFF() {
   sws_freeContext(mSwsContext);
 }
 
-void ScaleConverterFF::init(uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, 
-                          uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt) {
+void ScaleConverterFF::init(uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, std::string srcIlace, 
+                            uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt, std::string dstIlace) {
   mSrcWidth = srcWidth;
   mSrcHeight = srcHeight;
   mSrcPixFmt = srcPixFmt;
+  mSrcIlace = srcIlace;
   mDstWidth = dstWidth;
   mDstHeight = dstHeight;
   mDstPixFmt = dstPixFmt;
+  mDstIlace = dstIlace;
 
   if (mSwsContext) sws_freeContext(mSwsContext);
-  mSwsContext = sws_getContext(mSrcWidth, mSrcHeight, (AVPixelFormat)mSrcPixFmt,
-                               mDstWidth, mDstHeight, (AVPixelFormat)mDstPixFmt,
+  uint32_t ishift = (srcIlace.compare("prog") || dstIlace.compare("prog"))?1:0;
+  mSwsContext = sws_getContext(mSrcWidth, mSrcHeight>>ishift, (AVPixelFormat)mSrcPixFmt,
+                               mDstWidth, mDstHeight>>ishift, (AVPixelFormat)mDstPixFmt,
                                SWS_BILINEAR, NULL, NULL, NULL);
   if (!mSwsContext) {
     fprintf(stderr,
@@ -70,8 +73,7 @@ void ScaleConverterFF::init(uint32_t srcWidth, uint32_t srcHeight, uint32_t srcP
   mDstLinesize[2] = mDstWidth / 2;
 }
 
-void ScaleConverterFF::scaleConvertField (uint8_t **srcData, uint8_t **dstData, uint32_t field) {
-
+void ScaleConverterFF::scaleConvertField (uint8_t **srcData, uint8_t **dstData, uint32_t srcField, uint32_t dstField) {
   const uint8_t *srcBuf[4];
   uint8_t *dstBuf[4];
   uint32_t srcStride[4], dstStride[4];
@@ -79,21 +81,21 @@ void ScaleConverterFF::scaleConvertField (uint8_t **srcData, uint8_t **dstData, 
   for (uint32_t i = 0; i < 4; ++i) {
     srcStride[i] = mSrcLinesize[i] * 2;
     dstStride[i] = mDstLinesize[i] * 2;
-    srcBuf[i] = srcData[i] + field * mSrcLinesize[i];
-    dstBuf[i] = dstData[i] + field * mDstLinesize[i];
+    srcBuf[i] = srcData[i] + srcField * mSrcLinesize[i];
+    dstBuf[i] = dstData[i] + dstField * mDstLinesize[i];
   }
 
   sws_scale(mSwsContext, srcBuf, (const int *)srcStride, 0, mSrcHeight/2, dstBuf, (const int *)dstStride);
 }
 
 void ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf, 
-                                          uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt,
+                                          uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, std::string srcIlace,
                                           std::shared_ptr<Memory> dstBuf, 
-                                          uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt) {
+                                          uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt, std::string dstIlace) {
 
-  if ((mSrcWidth != srcWidth) || (mSrcHeight != srcHeight) || (mSrcPixFmt != srcPixFmt) ||
-      (mDstWidth != dstWidth) || (mDstHeight != dstHeight) || (mDstPixFmt != dstPixFmt)) {
-    init(srcWidth, srcHeight, srcPixFmt, dstWidth, dstHeight, dstPixFmt);      
+  if ((mSrcWidth != srcWidth) || (mSrcHeight != srcHeight) || (mSrcPixFmt != srcPixFmt) || (mSrcIlace.compare(srcIlace)) ||
+      (mDstWidth != dstWidth) || (mDstHeight != dstHeight) || (mDstPixFmt != dstPixFmt) || (mDstIlace.compare(dstIlace))) {
+    init(srcWidth, srcHeight, srcPixFmt, srcIlace, dstWidth, dstHeight, dstPixFmt, dstIlace);      
   }
 
   uint8_t *srcData[4];
@@ -110,13 +112,18 @@ void ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf,
   dstData[2] = (uint8_t *)(dstBuf->buf() + dstLumaBytes + dstLumaBytes / 4);
   dstData[3] = NULL;
 
-  bool interlace = true;
-  if (interlace) {
-    scaleConvertField (srcData, dstData, 0);
-    scaleConvertField (srcData, dstData, 1);
-  } else {
+  bool srcProgressive = (0 == srcIlace.compare("prog"));
+  bool dstProgressive = (0 == dstIlace.compare("prog"));
+  if (srcProgressive && dstProgressive) {
     sws_scale(mSwsContext, (const uint8_t * const*)srcData,
               (const int *)mSrcLinesize, 0, mSrcHeight, dstData, (const int *)mDstLinesize);
+  } else {
+    bool srcTff = (0 == srcIlace.compare("tff"));
+    bool dstTff = (0 == dstIlace.compare("tff"));
+    // first field
+    scaleConvertField (srcData, dstData, srcTff?0:1, dstTff?0:1);
+    // second field
+    scaleConvertField (srcData, dstData, srcTff?1:0, dstTff?1:0);
   }
 }
 

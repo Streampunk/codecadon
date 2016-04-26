@@ -27,12 +27,12 @@ public:
   ScaleConverterFF();
   ~ScaleConverterFF();
 
-  void init(uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, 
-            uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt);
+  void init(uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, std::string srcIlace, 
+            uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt, std::string dstIlace);
   void scaleConvertFrame (std::shared_ptr<Memory> srcBuf, 
-                          uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt,
+                          uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, std::string srcIlace,
                           std::shared_ptr<Memory> dstBuf, 
-                          uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt);
+                          uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt, std::string dstIlace);
 
 private:
   SwsContext *mSwsContext;
@@ -40,11 +40,13 @@ private:
   uint32_t mSrcWidth;
   uint32_t mSrcHeight;
   uint32_t mSrcPixFmt;
+  std::string mSrcIlace;
   uint32_t mDstWidth;
   uint32_t mDstHeight;
   uint32_t mDstPixFmt;
+  std::string mDstIlace;
 
-  void scaleConvertField (uint8_t **srcData, uint8_t **dstData, uint32_t field);
+  void scaleConvertField (uint8_t **srcData, uint8_t **dstData, uint32_t srcField, uint32_t dstField);
 };
 
 } // namespace streampunk

@@ -2,7 +2,7 @@
 
 Codecadon is a [Node.js](http://nodejs.org/) [addon](http://nodejs.org/api/addons.html) using Javascript and C++ to implement async processing for media encoding, decoding and processing.
 
-The implemention is designed to support the [dynamorse](http://github.com/Streampunk/dynamorse) project and currently provides packing, rescaling and encoding/decoding for h.264 and VP8, largely using [FFmpeg](http://www.ffmpeg.org/).
+The implementation is designed to support the [dynamorse](http://github.com/Streampunk/dynamorse) project and currently provides packing, rescaling and encoding/decoding for h.264 and VP8, largely using [FFmpeg](http://www.ffmpeg.org/).
 
 ## Installation
 

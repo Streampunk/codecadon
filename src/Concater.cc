@@ -1,4 +1,4 @@
-/* Copyright 2016 Christine S. MacNeill
+/* Copyright 2016 Streampunk Media Ltd.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "Timer.h"
 #include "Packers.h"
 #include "Memory.h"
+#include "EssenceInfo.h"
 
 #include <memory>
 
@@ -50,7 +51,9 @@ private:
 };
 
 
-Concater::Concater(uint32_t numBytes) : mNumBytes(numBytes), mWorker(NULL) {}
+Concater::Concater(Nan::Callback *callback) : mWorker(new MyWorker(callback)) {
+  AsyncQueueWorker(mWorker);
+}
 Concater::~Concater() {}
 
 // iProcess
@@ -75,21 +78,17 @@ uint32_t Concater::processFrame (std::shared_ptr<iProcessData> processData) {
   return concatBufOffset;
 }
 
-NAN_METHOD(Concater::Start) {
+NAN_METHOD(Concater::SetInfo) {
   if (info.Length() != 1)
-    return Nan::ThrowError("Concater start expects 1 argument");
-  if (!info[0]->IsFunction())
-    return Nan::ThrowError("Concater start requires a valid callback as the parameter");
-  Nan::Callback *callback = new Nan::Callback(Local<Function>::Cast(info[0]));
-  Concater* obj = Nan::ObjectWrap::Unwrap<Concater>(info.Holder());
+    return Nan::ThrowError("Concater SetInfo expects 1 argument");
+  Local<Object> srcTags = Local<Object>::Cast(info[0]);
+  std::shared_ptr<EssenceInfo> srcVidInfo = std::make_shared<EssenceInfo>(srcTags); 
+  printf("Concater VidInfo: %s\n", srcVidInfo->toString().c_str());
 
-  if (obj->mWorker != NULL)
-    return Nan::ThrowError("Attempt to restart concater when not idle");
-  
-  obj->mWorker = new MyWorker(callback);
-  AsyncQueueWorker(obj->mWorker);
-
-  info.GetReturnValue().Set(Nan::New(obj->mNumBytes));
+  uint32_t srcPitchBytes = ("pgroup"==srcVidInfo->packing())?
+    (srcVidInfo->width() * 5 / 2):
+    ((srcVidInfo->width() + 47) / 48) * 48 * 8 / 3;
+  info.GetReturnValue().Set(Nan::New(srcPitchBytes * srcVidInfo->height()));
 }
 
 NAN_METHOD(Concater::Concat) {
@@ -135,21 +134,14 @@ NAN_METHOD(Concater::Quit) {
   info.GetReturnValue().SetUndefined();
 }
 
-NAN_METHOD(Concater::Finish) {
-  Concater* obj = Nan::ObjectWrap::Unwrap<Concater>(info.Holder());
-  obj->mWorker = NULL;
-  info.GetReturnValue().SetUndefined();
-}
-
 NAN_MODULE_INIT(Concater::Init) {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("Concater").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  SetPrototypeMethod(tpl, "start", Start);
+  SetPrototypeMethod(tpl, "setInfo", SetInfo);
   SetPrototypeMethod(tpl, "concat", Concat);
   SetPrototypeMethod(tpl, "quit", Quit);
-  SetPrototypeMethod(tpl, "finish", Finish);
 
   constructor().Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("Concater").ToLocalChecked(),

@@ -1,4 +1,4 @@
-/* Copyright 2016 Christine S. MacNeill
+/* Copyright 2016 Streampunk Media Ltd.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -103,8 +103,8 @@ private:
     while (mDoneQueue.size() != 0)
     {
       std::shared_ptr<WorkParams> wp = mDoneQueue.dequeue();
-      Local<Value> argv[] = { Nan::New(wp->mResultBytes) };
-      wp->mCallback->Call(1, argv);
+      Local<Value> argv[] = { Nan::Null(), Nan::New(wp->mResultBytes) };
+      wp->mCallback->Call(2, argv);
 
       if (!wp->mProcess && !mActive) {
         // notify the thread to exit

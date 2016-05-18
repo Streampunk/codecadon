@@ -1,4 +1,4 @@
-/* Copyright 2016 Christine S. MacNeill
+/* Copyright 2016 Streampunk Media Ltd.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ namespace streampunk {
 class Memory;
 class Packers {
 public:
-  Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFmtCode, uint32_t srcBytes, const std::string& dstFmtCode);
+  Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFmtCode, const std::string& dstFmtCode);
 
   void convert(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf);
 
@@ -35,7 +35,6 @@ private:
   uint32_t mSrcWidth;
   uint32_t mSrcHeight;
   std::string mSrcFmtCode;
-  uint32_t mSrcBytes;
   std::string mDstFmtCode;
 };
 

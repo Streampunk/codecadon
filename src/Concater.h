@@ -1,4 +1,4 @@
-/* Copyright 2016 Christine S. MacNeill
+/* Copyright 2016 Streampunk Media Ltd.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -31,13 +31,15 @@ public:
   uint32_t processFrame (std::shared_ptr<iProcessData> processData);
   
 private:
-  explicit Concater(uint32_t numBytes);
+  explicit Concater(Nan::Callback *callback);
   ~Concater();
 
   static NAN_METHOD(New) {
     if (info.IsConstructCall()) {
-      uint32_t numBytes = Nan::To<uint32_t>(info[0]).FromJust();
-      Concater *obj = new Concater(numBytes);
+      if (!((info.Length() == 1) && (info[0]->IsFunction())))
+        return Nan::ThrowError("Concater constructor requires a valid callback as the parameter");
+      Nan::Callback *callback = new Nan::Callback(v8::Local<v8::Function>::Cast(info[0]));
+      Concater *obj = new Concater(callback);
       obj->Wrap(info.This());
       info.GetReturnValue().Set(info.This());
     } else {
@@ -53,12 +55,10 @@ private:
     return my_constructor;
   }
 
-  static NAN_METHOD(Start);
+  static NAN_METHOD(SetInfo);
   static NAN_METHOD(Concat);
   static NAN_METHOD(Quit);
-  static NAN_METHOD(Finish);
 
-  const uint32_t mNumBytes;
   MyWorker *mWorker;
 };
 

@@ -1,6 +1,6 @@
 {
   "name": "codecadon",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Async processing addon",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,7 @@
   "devDependencies": {
     "tape": "^4.4.0"
   },
-  "author": "Christine S. MacNeill",
+  "author": "Streampunk Media Ltd",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/Streampunk/codecadon/issues"

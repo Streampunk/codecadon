@@ -51,14 +51,17 @@
             'OTHER_CPLUSPLUSFLAGS': [
               '-std=c++11',
               '-stdlib=libc++'
+            ],
+            'OTHER_LDFLAGS': [
+              "-Wl,-rpath,<@(module_root_dir)/build/Release"
             ]
           },
           "link_settings": {
             "libraries": [
-              "libavcodec.dylib",
-              "libavutil.dylib",
-              "libswscale.dylib",
-              "libopenh264.dylib"
+              "<@(module_root_dir)/build/Release/libavcodec.dylib",
+              "<@(module_root_dir)/build/Release/libavutil.dylib",
+              "<@(module_root_dir)/build/Release/libswscale.dylib",
+              "<@(module_root_dir)/build/Release/libopenh264.dylib"
             ]
           },
           "copies": [

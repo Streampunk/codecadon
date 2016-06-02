@@ -22,11 +22,11 @@
           ],
           "link_settings": {
             "libraries": [
-              "<@(module_root_dir)/build/Release/libavcodec.so",
-              "<@(module_root_dir)/build/Release/libavutil.so",
-              "<@(module_root_dir)/build/Release/libswscale.so",
-              "<@(module_root_dir)/build/Release/libopenh264.so",
-              "<@(module_root_dir)/build/Release/libvpx.so"
+              "<@(module_root_dir)/build/Release/libavcodec.so.57",
+              "<@(module_root_dir)/build/Release/libavutil.so.55",
+              "<@(module_root_dir)/build/Release/libswscale.so.4",
+              "<@(module_root_dir)/build/Release/libopenh264.so.1",
+              "<@(module_root_dir)/build/Release/libvpx.so.3"
             ],
             "ldflags": [
               "-L<@(module_root_dir)/build/Release",

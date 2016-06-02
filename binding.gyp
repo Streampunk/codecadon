@@ -25,7 +25,8 @@
               "<@(module_root_dir)/build/Release/libavcodec.so",
               "<@(module_root_dir)/build/Release/libavutil.so",
               "<@(module_root_dir)/build/Release/libswscale.so",
-              "<@(module_root_dir)/build/Release/libopenh264.so"
+              "<@(module_root_dir)/build/Release/libopenh264.so",
+              "<@(module_root_dir)/build/Release/libvpx.so"
             ],
             "ldflags": [
               "-L<@(module_root_dir)/build/Release",
@@ -39,7 +40,8 @@
                 "<!@(ls -1 ffmpeg/bin/libavcodec.so*)",
                 "<!@(ls -1 ffmpeg/bin/libavutil.so*)",
                 "<!@(ls -1 ffmpeg/bin/libswscale.so*)",
-                "<!@(ls -1 ffmpeg/bin/libopenh264*.so*)"
+                "<!@(ls -1 ffmpeg/bin/libopenh264*.so*)",
+                "<!@(ls -1 ffmpeg/bin/libvpx*.so*)"
               ]
             }
           ] 

@@ -54,7 +54,7 @@ uint32_t Packer::processFrame (std::shared_ptr<iProcessData> processData) {
   std::shared_ptr<PackerProcessData> ppd = std::dynamic_pointer_cast<PackerProcessData>(processData);
 
   if (mUnityPacking) {
-    memcpy_s (ppd->dstBuf()->buf(), ppd->dstBuf()->numBytes(), ppd->srcBuf()->buf(), ppd->srcBuf()->numBytes());
+    memcpy (ppd->dstBuf()->buf(), ppd->srcBuf()->buf(), ppd->srcBuf()->numBytes());
   }
   else {
     mPacker->convert(ppd->srcBuf(), ppd->dstBuf()); 

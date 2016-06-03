@@ -65,14 +65,15 @@ private:
   static NAN_METHOD(Quit);
 
   MyWorker *mWorker;
-  ScaleConverterFF *mScaleConverterFF;
-  std::shared_ptr<EssenceInfo> mSrcVidInfo;
-  std::shared_ptr<EssenceInfo> mDstVidInfo;
-  std::shared_ptr<Packers> mPacker;
-  bool mUnityFormat;
+  bool mSetInfoOK;
+  bool mUnityPacking;
   bool mUnityScale;
   uint32_t mSrcFormatBytes;
   uint32_t mDstBytesReq;
+  std::shared_ptr<EssenceInfo> mSrcVidInfo;
+  std::shared_ptr<EssenceInfo> mDstVidInfo;
+  std::shared_ptr<ScaleConverterFF> mScaleConverterFF;
+  std::shared_ptr<Packers> mPacker;
 };
 
 } // namespace streampunk

@@ -17,6 +17,7 @@
 #define DECODERFF_H
 
 #include <memory>
+#include "iCodecDriver.h"
 
 struct AVCodec;
 struct AVCodecContext;
@@ -25,9 +26,10 @@ struct AVFrame;
 namespace streampunk {
 
 class Memory;
-class DecoderFF {
+class EssenceInfo;
+class DecoderFF : public iDecoderDriver {
 public:
-  DecoderFF(uint32_t width, uint32_t height);
+  DecoderFF(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<EssenceInfo> dstInfo);
   ~DecoderFF();
 
   uint32_t bytesReq() const;
@@ -35,11 +37,11 @@ public:
   uint32_t height() const { return mHeight; }
   uint32_t pixFmt() const { return mPixFmt; }
   
-  void init(const std::string& srcFormat);
-  void decodeFrame (const std::string& srcFormat, std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, uint32_t *pDstBytes);
+  void decodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, uint32_t *pDstBytes);
 
 private:
-  std::string mSrcFormat;
+  std::string mSrcEncoding;
+  std::string mDstPacking;
   const uint32_t mWidth;
   const uint32_t mHeight;
   const uint32_t mPixFmt;

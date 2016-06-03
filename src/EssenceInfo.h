@@ -23,6 +23,23 @@ using namespace v8;
 
 namespace streampunk {
 
+class Duration {
+public:
+  Duration(uint32_t num, uint32_t den)
+    : mNumerator(num), mDenominator(den) {}
+    
+  uint32_t numerator() const  { return mNumerator; }
+  uint32_t denominator() const  { return mDenominator; }
+  std::string toString() const  { return std::to_string(mNumerator) + "/" + std::to_string(mDenominator); }
+
+private:
+  const uint32_t mNumerator;
+  const uint32_t mDenominator;  
+
+  Duration();
+  Duration(const Duration&);
+};
+
 class EssenceInfo {
 public:
   EssenceInfo(Local<Object> tags)
@@ -34,7 +51,7 @@ public:
       mSampling(unpackStr(tags, "sampling", "YCbCr-4:2:2")),  
       mDepth(unpackNum(tags, "depth", 8)),
       mColorimetry(unpackStr(tags, "colorimetry", "BT709-2")),
-      mInterlace(unpackNum(tags, "interlace", 1)?"tff":"prog"),
+      mInterlace(unpackBool(tags, "interlace", true)?"tff":"prog"),
       mPacking(unpackStr(tags, "packing", "pgroup")),
       mChannels(unpackNum(tags, "channels", 0))
   {}
@@ -78,6 +95,18 @@ private:
       
     Local<Array> valueArray = Local<Array>::Cast(Nan::Get(tags, keyStr).ToLocalChecked());
     return *String::Utf8Value(valueArray->Get(0));
+  }
+
+  bool unpackBool(Local<Object> tags, const std::string& key, bool dflt) {
+    std::string val = unpackValue(tags, key);
+    bool result = dflt;
+    if (!val.empty()) {
+      if (0==val.compare("true"))
+        result = true;
+      else if (0==val.compare("false"))
+        result = false;
+    }
+    return result;
   }
 
   uint32_t unpackNum(Local<Object> tags, const std::string& key, uint32_t dflt) {

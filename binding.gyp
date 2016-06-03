@@ -2,23 +2,26 @@
   "targets": [
     {
       "target_name": "codecadon",
-      "sources": [ "src/codecadon.cc", 
-                   "src/Concater.cc", 
-                   "src/ScaleConverter.cc", 
+      "sources": [ "src/codecadon.cc",
+                   "src/Concater.cc",
+                   "src/Packer.cc",
+                   "src/ScaleConverter.cc",
                    "src/Decoder.cc",
                    "src/Encoder.cc",
+                   "src/ScaleConverterFF.cc",
                    "src/DecoderFF.cc",
                    "src/EncoderFF.cc",
-                   "src/ScaleConverterFF.cc",
                    "src/Packers.cc" ],
       "include_dirs": [ "<!(node -e \"require('nan')\")", "ffmpeg/include" ],
       'conditions': [
         ['OS=="linux"', {
           "cflags_cc!": [ 
-            "-fno-rtti" 
+            "-fno-rtti",
+            "-fno-exceptions" 
           ],
           "cflags_cc": [
-            "-std=c++11"
+            "-std=c++11",
+            "-fexceptions"
           ],
           "link_settings": {
             "libraries": [
@@ -52,7 +55,8 @@
             'MACOSX_DEPLOYMENT_TARGET': '10.7',
             'OTHER_CPLUSPLUSFLAGS': [
               '-std=c++11',
-              '-stdlib=libc++'
+              '-stdlib=libc++',
+              '-fexceptions'
             ],
             'OTHER_LDFLAGS': [
               "-Wl,-rpath,<@(module_root_dir)/build/Release"
@@ -83,7 +87,8 @@
             "Release": {
               "msvs_settings": {
                 "VCCLCompilerTool": {
-                  "RuntimeTypeInfo": "true"
+                  "RuntimeTypeInfo": "true",
+                  "ExceptionHandling": 1
                 }
               }
             }

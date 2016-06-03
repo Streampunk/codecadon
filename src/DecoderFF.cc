@@ -17,6 +17,7 @@
 #include "DecoderFF.h"
 #include "Memory.h"
 #include "Packers.h"
+#include "EssenceInfo.h"
 
 extern "C" {
   #include <libavutil/opt.h>
@@ -26,9 +27,46 @@ extern "C" {
 
 namespace streampunk {
 
-DecoderFF::DecoderFF(uint32_t width, uint32_t height)
-  : mWidth(width), mHeight(height), mPixFmt((uint32_t)AV_PIX_FMT_YUV420P),
-    mCodec(NULL), mContext(NULL), mFrame(NULL) {
+DecoderFF::DecoderFF(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<EssenceInfo> dstInfo)
+  : mSrcEncoding(srcInfo->encodingName()), mDstPacking(dstInfo->packing()), mWidth(srcInfo->width()), mHeight(srcInfo->height()),
+    mPixFmt((uint32_t)AV_PIX_FMT_YUV420P), mCodec(NULL), mContext(NULL), mFrame(NULL) {
+
+  avcodec_register_all();
+  av_log_set_level(AV_LOG_INFO);
+
+  AVCodecID codecID = AV_CODEC_ID_NONE;
+  if (!mSrcEncoding.compare("h264"))
+    codecID = AV_CODEC_ID_H264;
+  else if (!mSrcEncoding.compare("vp8"))
+    codecID = AV_CODEC_ID_VP8;
+
+  mCodec = avcodec_find_decoder(codecID);
+  if (!mCodec) {
+    std::string err = std::string("Decoder for format \'") + mSrcEncoding.c_str() + "\' not found";
+    Nan::ThrowError(err.c_str());
+    return;
+  }
+
+  mContext = avcodec_alloc_context3(mCodec);
+  if (!mContext) {
+    Nan::ThrowError("Could not allocate video codec context");
+    return;
+  }
+
+  mContext->width = mWidth;
+  mContext->height = mHeight;
+  mContext->refcounted_frames = 1;
+
+  if (avcodec_open2(mContext, mCodec, NULL) < 0) {
+    Nan::ThrowError("Could not open codec");
+    return;
+  }
+
+  mFrame = av_frame_alloc();
+  if (!mFrame) {
+    Nan::ThrowError("Could not allocate video frame");
+    return;
+  }
 }
 
 DecoderFF::~DecoderFF() {
@@ -37,51 +75,12 @@ DecoderFF::~DecoderFF() {
   av_free(mContext);
 }
 
-void DecoderFF::init(const std::string& srcFormat) {
-  avcodec_register_all();
-  av_log_set_level(AV_LOG_INFO);
-
-  AVCodecID codecID = AV_CODEC_ID_NONE;
-  if (!srcFormat.compare("h264"))
-    codecID = AV_CODEC_ID_H264;
-  else if (!srcFormat.compare("vp8"))
-    codecID = AV_CODEC_ID_VP8;
-
-  mCodec = avcodec_find_decoder(codecID);
-  if (!mCodec) {
-    std::string err = std::string("Decoder for format \'") + srcFormat.c_str() + "\' not found";
-    return Nan::ThrowError(err.c_str());
-  }
-
-  mContext = avcodec_alloc_context3(mCodec);
-  if (!mContext)
-    return Nan::ThrowError("Could not allocate video codec context");
-
-  mContext->width = mWidth;
-  mContext->height = mHeight;
-  mContext->refcounted_frames = 1;
-
-  if (avcodec_open2(mContext, mCodec, NULL) < 0)
-    return Nan::ThrowError("Could not open codec");
-
-  mFrame = av_frame_alloc();
-  if (!mFrame)
-    return Nan::ThrowError("Could not allocate video frame");
-
-  mSrcFormat = srcFormat;
-}
-
 uint32_t DecoderFF::bytesReq() const {
   return mWidth * mHeight * 3 / 2;
 }
 
-void DecoderFF::decodeFrame (const std::string& srcFormat, std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, 
+void DecoderFF::decodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, 
                              uint32_t frameNum, uint32_t *pDstBytes) {
-
-  if (mSrcFormat != srcFormat) {
-    init(srcFormat);      
-  }
-
   AVPacket pkt;
   av_init_packet(&pkt);
   pkt.data = srcBuf->buf();

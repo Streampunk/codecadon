@@ -16,7 +16,7 @@
 'use strict';
 var codecAdon = require('bindings')('./Release/codecadon');
 
-//var SegfaultHandler = require('../node-segfault-handler');
+//var SegfaultHandler = require('../../node-segfault-handler');
 //SegfaultHandler.registerHandler("crash.log");
 
 const util = require('util');
@@ -34,6 +34,7 @@ Concater.prototype.setInfo = function(srcTags) {
     return this.concaterAdon.setInfo(srcTags);
   } catch (err) {
     this.emit('error', err);
+    return 0;
   }
 }
 
@@ -59,6 +60,44 @@ Concater.prototype.quit = function(cb) {
 }
 
 
+function Packer(cb) {
+  this.packerAdon = new codecAdon.Packer(cb);
+  EventEmitter.call(this);
+}
+
+util.inherits(Packer, EventEmitter);
+
+Packer.prototype.setInfo = function(srcTags, dstTags) {
+  try {
+    return this.packerAdon.setInfo(srcTags, dstTags);
+  } catch (err) {
+    this.emit('error', err);
+    return 0;
+  }
+}
+
+Packer.prototype.pack = function(srcBufArray, dstBuf, cb) {
+  try {
+    var numQueued = this.packerAdon.pack(srcBufArray, dstBuf, function(err, resultBytes) {
+      cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
+    });
+    return numQueued;
+  } catch (err) {
+    cb(err);
+  }
+}
+
+Packer.prototype.quit = function(cb) {
+  try {
+    this.packerAdon.quit(function(err, resultBytes) {
+      cb(err, resultBytes);
+    });
+  } catch (err) {
+    this.emit('error', err);
+  }
+}
+
+
 function ScaleConverter(cb) {
   this.scaleConverterAdon = new codecAdon.ScaleConverter(cb);
   EventEmitter.call(this);
@@ -71,6 +110,7 @@ ScaleConverter.prototype.setInfo = function(srcTags, dstTags) {
     return this.scaleConverterAdon.setInfo(srcTags, dstTags);
   } catch (err) {
     this.emit('error', err);
+    return 0;
   }
 }
 
@@ -108,6 +148,7 @@ Decoder.prototype.setInfo = function(srcTags, dstTags) {
     return this.decoderAdon.setInfo(srcTags, dstTags);
   } catch (err) {
     this.emit('error', err);
+    return 0;
   }
 }
 
@@ -140,11 +181,12 @@ function Encoder (cb) {
 
 util.inherits(Encoder, EventEmitter);
 
-Encoder.prototype.setInfo = function(srcTags, dstTags) {
+Encoder.prototype.setInfo = function(srcTags, dstTags, duration) {
   try {
-    return this.encoderAdon.setInfo(srcTags, dstTags);
+    return this.encoderAdon.setInfo(srcTags, dstTags, duration);
   } catch (err) {
     this.emit('error', err);
+    return 0;
   }
 }
 
@@ -171,6 +213,7 @@ Encoder.prototype.quit = function(cb) {
 
 var codecadon = {
    Concater : Concater,
+   Packer : Packer,
    ScaleConverter : ScaleConverter,
    Decoder : Decoder,
    Encoder : Encoder

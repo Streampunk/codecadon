@@ -17,6 +17,7 @@
 #define ENCODERFF_H
 
 #include <memory>
+#include "iCodecDriver.h"
 
 struct AVCodec;
 struct AVCodecContext;
@@ -25,21 +26,23 @@ struct AVFrame;
 namespace streampunk {
 
 class Memory;
-class EncoderFF {
+class Duration;
+class EssenceInfo;
+class EncoderFF : public iEncoderDriver {
 public:
-  EncoderFF(const std::string& format, uint32_t width, uint32_t height);
+  EncoderFF(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<EssenceInfo> dstInfo, const Duration& duration);
   ~EncoderFF();
 
   uint32_t bytesReq() const;
+  std::string packingRequired() const;
   uint32_t width() const { return mWidth; }
   uint32_t height() const { return mHeight; }
   uint32_t pixFmt() const { return mPixFmt; }
   
-  void init();
   void encodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, uint32_t *pDstBytes);
 
 private:
-  std::string mFormat; 
+  std::string mEncoding; 
   const uint32_t mWidth;
   const uint32_t mHeight;
   const uint32_t mPixFmt;

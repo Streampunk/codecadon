@@ -17,6 +17,7 @@
 #define PACKERS_H
 
 #include <memory>
+#include <functional>
 #include "iProcess.h"
 
 namespace streampunk {
@@ -26,21 +27,37 @@ class Packers {
 public:
   Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFmtCode, const std::string& dstFmtCode);
 
-  void convert(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf);
+  void convert(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf) const;
 
-private:  
-  void convertPGroupto420P (const uint8_t *const srcBuf, uint8_t *const dstBuf);
-  void convertV210to420P (const uint8_t *const srcBuf, uint8_t *const dstBuf);
+private:
+  typedef std::function<void(const Packers&, const uint8_t *const, uint8_t *const)> tConvertFn;
+  void convertNotSupported (const uint8_t *const srcBuf, uint8_t *const dstBuf) const {}
 
-  uint32_t mSrcWidth;
-  uint32_t mSrcHeight;
-  std::string mSrcFmtCode;
-  std::string mDstFmtCode;
+  void convertPGrouptoUYVY10 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+  void convertYUV422P10toUYVY10 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+  void convertPGrouptoYUV422P10 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+  void convertV210toYUV422P10 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+  void convertPGroupto420P (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+  void convertV210to420P (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+
+  void convertYUV422P10toPGroup (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+  void convert420PtoPGroup (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+  void convertYUV422P10toV210 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+  void convert420PtoV210 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+
+  void convertPGrouptoV210 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+  void convertV210toPGroup (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+
+  const uint32_t mSrcWidth;
+  const uint32_t mSrcHeight;
+  const std::string mSrcFmtCode;
+  const std::string mDstFmtCode;
+  mutable tConvertFn mConvertFn;
 };
 
 uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t height);
-void dumpPGroupRaw (uint8_t *pgbuf, uint32_t width, uint32_t numLines);
-void dump420P (uint8_t *buf, uint32_t width, uint32_t height, uint32_t numLines);
+void dumpPGroupRaw (const uint8_t *const pgbuf, uint32_t width, uint32_t numLines);
+void dump420P (const uint8_t *const buf, uint32_t width, uint32_t height, uint32_t numLines);
 
 } // namespace streampunk
 

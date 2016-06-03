@@ -22,7 +22,9 @@
 namespace streampunk {
 
 class MyWorker;
-class EncoderFF;
+class Packers;
+class iEncoderDriver;
+class Duration;
 class EssenceInfo;
 
 class Encoder : public Nan::ObjectWrap, public iProcess {
@@ -36,7 +38,7 @@ private:
   explicit Encoder(Nan::Callback *callback);
   ~Encoder();
 
-  void doSetInfo(v8::Local<v8::Object> srcTags, v8::Local<v8::Object> dstTags);
+  void doSetInfo(v8::Local<v8::Object> srcTags, v8::Local<v8::Object> dstTags, const Duration& duration);
 
   static NAN_METHOD(New) {
     if (info.IsConstructCall()) {
@@ -64,10 +66,12 @@ private:
   static NAN_METHOD(Quit);
 
   MyWorker *mWorker;
-  EncoderFF *mEncoder;
   uint32_t mFrameNum;
+  bool mSetInfoOK;
   std::shared_ptr<EssenceInfo> mSrcVidInfo;
   std::shared_ptr<EssenceInfo> mDstVidInfo;
+  std::shared_ptr<Packers> mPacker;
+  std::shared_ptr<iEncoderDriver> mEncoderDriver;
 };
 
 } // namespace streampunk

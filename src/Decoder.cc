@@ -18,7 +18,7 @@
 #include "MyWorker.h"
 #include "Timer.h"
 #include "Memory.h"
-#include "DecoderFF.h"
+#include "DecoderFactory.h"
 #include "EssenceInfo.h"
 
 #include <memory>
@@ -45,12 +45,10 @@ private:
 
 
 Decoder::Decoder(Nan::Callback *callback) 
-  : mWorker(new MyWorker(callback)), mFrameNum(0) {
+  : mWorker(new MyWorker(callback)), mFrameNum(0), mSetInfoOK(false) {
   AsyncQueueWorker(mWorker);
 }
-Decoder::~Decoder() {
-  delete mDecoder;
-}
+Decoder::~Decoder() {}
 
 // iProcess
 uint32_t Decoder::processFrame (std::shared_ptr<iProcessData> processData) {
@@ -59,7 +57,7 @@ uint32_t Decoder::processFrame (std::shared_ptr<iProcessData> processData) {
 
   // do the decode
   uint32_t dstBytes = 0;
-  mDecoder->decodeFrame (mSrcVidInfo->packing(), dpd->srcBuf(), dpd->dstBuf(), mFrameNum++, &dstBytes);
+  mDecoderDriver->decodeFrame (dpd->srcBuf(), dpd->dstBuf(), mFrameNum++, &dstBytes);
   printf("decode : %.2fms\n", t.delta());
 
   return dstBytes;
@@ -71,12 +69,13 @@ void Decoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
   mDstVidInfo = std::make_shared<EssenceInfo>(dstTags); 
   printf("Decoder DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
 
-  if (mSrcVidInfo->packing().compare("h264") && mSrcVidInfo->packing().compare("vp8")) {
-    std::string err = std::string("Unsupported source format \'") + mSrcVidInfo->packing().c_str() + "\'";
+  if (mSrcVidInfo->encodingName().compare("h264") && mSrcVidInfo->encodingName().compare("vp8") && 
+      mSrcVidInfo->encodingName().compare("AVCi50") && mSrcVidInfo->encodingName().compare("AVCi100")) {
+    std::string err = std::string("Unsupported source encoding \'") + mSrcVidInfo->encodingName().c_str() + "\'";
     return Nan::ThrowError(err.c_str());
   }
-  if (mDstVidInfo->packing().compare("420P")) {
-    std::string err = std::string("Unsupported codec type \'") + mDstVidInfo->packing() + "\'";
+  if (mDstVidInfo->packing().compare("420P") && mDstVidInfo->packing().compare("UYVY10")) {
+    std::string err = std::string("Unsupported packing type \'") + mDstVidInfo->packing() + "\'";
     Nan::ThrowError(err.c_str());
     return;
   }
@@ -84,12 +83,8 @@ void Decoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
     std::string err = std::string("Width must be divisible by 2 - src ") + std::to_string(mSrcVidInfo->width()) + ", dst " + std::to_string(mDstVidInfo->width());
     Nan::ThrowError(err.c_str());
   }
-  if ((mSrcVidInfo->width() != mDstVidInfo->width()) || (mSrcVidInfo->height() != mDstVidInfo->height())) {
-    std::string err = std::string("Unsupported dimensions \'") + std::to_string(mSrcVidInfo->width()) + "x" + std::to_string(mSrcVidInfo->height()) + "\'";
-    return Nan::ThrowError(err.c_str());
-  }
 
-  mDecoder = new DecoderFF(mDstVidInfo->width(), mDstVidInfo->height());
+  mDecoderDriver = DecoderFactory::createDecoder(mSrcVidInfo, mDstVidInfo);
 }
 
 NAN_METHOD(Decoder::SetInfo) {
@@ -103,11 +98,13 @@ NAN_METHOD(Decoder::SetInfo) {
   Nan::TryCatch try_catch;
   obj->doSetInfo(srcTags, dstTags);
   if (try_catch.HasCaught()) {
+    obj->mSetInfoOK = false;
     try_catch.ReThrow();
     return;
   }
 
-  info.GetReturnValue().Set(Nan::New(obj->mDecoder->bytesReq()));
+  obj->mSetInfoOK = true;
+  info.GetReturnValue().Set(Nan::New(obj->mDecoderDriver->bytesReq()));
 }
 
 NAN_METHOD(Decoder::Decode) {
@@ -125,6 +122,9 @@ NAN_METHOD(Decoder::Decode) {
   Local<Function> callback = Local<Function>::Cast(info[2]);
 
   Decoder* obj = Nan::ObjectWrap::Unwrap<Decoder>(info.Holder());
+
+  if (!obj->mSetInfoOK)
+    return Nan::ThrowError("Decoder decode called with incorrect setup parameters");
 
   if (1 != srcBufArray->Length()) {
     std::string err = std::string("Decoder requires single source buffer - received ") + std::to_string(srcBufArray->Length());

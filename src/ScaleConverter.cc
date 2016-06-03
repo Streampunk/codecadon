@@ -48,32 +48,28 @@ private:
   std::shared_ptr<Memory> mScaleSrcBuf;
 };
 
-
 ScaleConverter::ScaleConverter(Nan::Callback *callback) 
-  : mWorker(new MyWorker(callback)), mScaleConverterFF(new ScaleConverterFF), mSrcFormatBytes(0), mDstBytesReq(0) {
+  : mWorker(new MyWorker(callback)), mSetInfoOK(false), mUnityPacking(true), mUnityScale(true), mSrcFormatBytes(0), mDstBytesReq(0) {
   AsyncQueueWorker(mWorker);
 }
-ScaleConverter::~ScaleConverter() {
-  delete mScaleConverterFF;
-}
+ScaleConverter::~ScaleConverter() {}
 
 // iProcess
 uint32_t ScaleConverter::processFrame (std::shared_ptr<iProcessData> processData) {
   Timer t;
   std::shared_ptr<ScaleConvertProcessData> scpd = std::dynamic_pointer_cast<ScaleConvertProcessData>(processData);
 
-  if (mUnityFormat && mUnityScale) {
+  if (mUnityPacking && mUnityScale) {
     memcpy (scpd->dstBuf()->buf(), scpd->srcBuf()->buf(), std::min<uint32_t>(scpd->dstBuf()->numBytes(), scpd->srcBuf()->numBytes()));
   }
   else {
-    if (!mUnityFormat) {
+    if (!mUnityPacking) {
       mPacker->convert(scpd->srcBuf(), scpd->convertDstBuf()); 
       printf("convert: %.2fms\n", t.delta());
     }
 
     if (!mUnityScale) {
-      mScaleConverterFF->scaleConvertFrame (scpd->scaleSrcBuf(), mSrcVidInfo->width(), mSrcVidInfo->height(), 0, mSrcVidInfo->interlace(), 
-                                            scpd->dstBuf(), mDstVidInfo->width(), mDstVidInfo->height(), 0, mDstVidInfo->interlace());
+      mScaleConverterFF->scaleConvertFrame (scpd->scaleSrcBuf(), scpd->dstBuf());
       printf("scale  : %.2fms\n", t.delta());
     }
   }
@@ -86,11 +82,12 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
   mDstVidInfo = std::make_shared<EssenceInfo>(dstTags); 
   printf("Converter DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
 
-  if (mSrcVidInfo->packing().compare("pgroup") && mSrcVidInfo->packing().compare("v210")) {
+  if (mSrcVidInfo->packing().compare("pgroup") && mSrcVidInfo->packing().compare("v210") && 
+      mSrcVidInfo->packing().compare("YUV422P10") && mSrcVidInfo->packing().compare("UYVY10") && mSrcVidInfo->packing().compare("420P")) {
     std::string err = std::string("Unsupported source format \'") + mSrcVidInfo->packing() + "\'";
     return Nan::ThrowError(err.c_str());
   }
-  if (mDstVidInfo->packing().compare("420P")) {
+  if (mDstVidInfo->packing().compare("420P") && mDstVidInfo->packing().compare("YUV422P10")) {
     std::string err = std::string("Unsupported destination packing type \'") + mDstVidInfo->packing() + "\'";
     Nan::ThrowError(err.c_str());
   }
@@ -99,11 +96,13 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
     Nan::ThrowError(err.c_str());
   }
 
+  mScaleConverterFF = std::make_shared<ScaleConverterFF>(mSrcVidInfo, mDstVidInfo);
   mPacker = std::make_shared<Packers>(mSrcVidInfo->width(), mSrcVidInfo->height(), 
-                                      mSrcVidInfo->packing(), mDstVidInfo->packing());
-  mUnityFormat = (mSrcVidInfo->packing() == mDstVidInfo->packing());
+                                      mSrcVidInfo->packing(), mScaleConverterFF->packingRequired());
+  mUnityPacking = (mSrcVidInfo->packing() == mScaleConverterFF->packingRequired());
   mUnityScale = ((mSrcVidInfo->width() == mDstVidInfo->width()) && 
-                 (mSrcVidInfo->height() == mDstVidInfo->height()));
+                 (mSrcVidInfo->height() == mDstVidInfo->height()) &&
+                 (0==mSrcVidInfo->interlace().compare(mDstVidInfo->interlace())));
   mDstBytesReq = getFormatBytes(mDstVidInfo->packing(), mDstVidInfo->width(), mDstVidInfo->height());
 }
 
@@ -118,10 +117,12 @@ NAN_METHOD(ScaleConverter::SetInfo) {
   Nan::TryCatch try_catch;
   obj->doSetInfo(srcTags, dstTags);
   if (try_catch.HasCaught()) {
+    obj->mSetInfoOK = false;
     try_catch.ReThrow();
     return;
   }
 
+  obj->mSetInfoOK = true;
   info.GetReturnValue().Set(Nan::New(obj->mDstBytesReq));
 }
 
@@ -143,9 +144,12 @@ NAN_METHOD(ScaleConverter::ScaleConvert) {
 
   ScaleConverter* obj = Nan::ObjectWrap::Unwrap<ScaleConverter>(info.Holder());
 
+  if (!obj->mSetInfoOK)
+    return Nan::ThrowError("ScaleConvert called with incorrect setup parameters");
+
   obj->mSrcFormatBytes = getFormatBytes(obj->mSrcVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height());
   if (obj->mSrcFormatBytes > (uint32_t)node::Buffer::Length(srcBufObj))
-    Nan::ThrowError("insufficient source buffer for conversion\n");
+    Nan::ThrowError("Insufficient source buffer for conversion\n");
 
   if (obj->mDstBytesReq > node::Buffer::Length(dstBufObj))
     return Nan::ThrowError("Insufficient destination buffer for specified format");
@@ -154,8 +158,8 @@ NAN_METHOD(ScaleConverter::ScaleConvert) {
   std::shared_ptr<Memory> dstBuf = Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj));
   std::shared_ptr<Memory> convertDstBuf = dstBuf;
   std::shared_ptr<Memory> scaleSrcBuf = srcBuf;
-  if (!obj->mUnityFormat && !obj->mUnityScale) {
-    convertDstBuf = Memory::makeNew(getFormatBytes(obj->mDstVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height()));
+  if (!obj->mUnityPacking && !obj->mUnityScale) {
+    convertDstBuf = Memory::makeNew(getFormatBytes(obj->mScaleConverterFF->packingRequired(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height()));
     scaleSrcBuf = convertDstBuf;
     if (!convertDstBuf->buf())
       Nan::ThrowError("Failed to allocate buffer for packer result");

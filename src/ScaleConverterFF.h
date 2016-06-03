@@ -22,29 +22,26 @@ struct SwsContext;
 namespace streampunk {
 
 class Memory;
+class EssenceInfo;
 class ScaleConverterFF {
 public:
-  ScaleConverterFF();
+  ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std::shared_ptr<EssenceInfo> dstVidInfo);
   ~ScaleConverterFF();
 
-  void init(uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, std::string srcIlace, 
-            uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt, std::string dstIlace);
-  void scaleConvertFrame (std::shared_ptr<Memory> srcBuf, 
-                          uint32_t srcWidth, uint32_t srcHeight, uint32_t srcPixFmt, std::string srcIlace,
-                          std::shared_ptr<Memory> dstBuf, 
-                          uint32_t dstWidth, uint32_t dstHeight, uint32_t dstPixFmt, std::string dstIlace);
+  std::string packingRequired() const;
+  void scaleConvertFrame(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf); 
 
 private:
   SwsContext *mSwsContext;
+  const uint32_t mSrcWidth;
+  const uint32_t mSrcHeight;
+  const std::string mSrcIlace;
+  const uint32_t mSrcPixFmt;
+  const uint32_t mDstWidth;
+  const uint32_t mDstHeight;
+  const std::string mDstIlace;
+  const uint32_t mDstPixFmt;
   uint32_t mSrcLinesize[4], mDstLinesize[4];
-  uint32_t mSrcWidth;
-  uint32_t mSrcHeight;
-  uint32_t mSrcPixFmt;
-  std::string mSrcIlace;
-  uint32_t mDstWidth;
-  uint32_t mDstHeight;
-  uint32_t mDstPixFmt;
-  std::string mDstIlace;
 
   void scaleConvertField (uint8_t **srcData, uint8_t **dstData, uint32_t srcField, uint32_t dstField);
 };

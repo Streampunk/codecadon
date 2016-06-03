@@ -16,15 +16,14 @@
 var test = require('tape');
 var codecadon = require('../../codecadon');
 
-function make4175BufArray(width, height) {
-  var a = new Array(1);
+function make4175Buf(width, height) {
   var pitchBytes = width * 5 / 2;
   var buf = new Buffer(pitchBytes * height);  
   var yOff = 0;
   for (var y=0; y<height; ++y) {
     var xOff = 0;
     for (var x=0; x<width; ++x) {
-      // uyvy, 10 bits each in 5 bytes
+      // uyvy, big-endian 10 bits each in 5 bytes
       buf[yOff + xOff++] = 0x80;       
       buf[yOff + xOff++] = 0x04;       
       buf[yOff + xOff++] = 0x08;       
@@ -33,14 +32,13 @@ function make4175BufArray(width, height) {
     }
     yOff += pitchBytes;
   }   
-  a[0] = buf;
-  return a;
+  return buf;
 }
 
 function make420PBuf(width, height) {
   var lumaPitchBytes = width;
   var chromaPitchBytes = lumaPitchBytes / 2;
-  var buf = new Buffer(lumaPitchBytes * height * 3 / 2);  
+  var buf = new Buffer(lumaPitchBytes * height * 3 / 2);
   var lOff = 0;
   var uOff = lumaPitchBytes * height;
   var vOff = uOff + chromaPitchBytes * height / 2;
@@ -48,16 +46,14 @@ function make420PBuf(width, height) {
   for (var y=0; y<height; ++y) {
     var xlOff = 0;
     var xcOff = 0;
-    var evenLine = (y & 1) == 0;
+    var evenLine = (y & 1) === 0;
     for (var x=0; x<width; x+=2) {
-      buf[lOff + xlOff++] = 0x10;
-      buf[lOff + xlOff++] = 0x10;
-    
-      if (evenLine) {
-        buf[uOff + xcOff] = 0x80;    
-        buf[vOff + xcOff] = 0x80;
-        xcOff++;
-      }    
+      buf[lOff + xlOff + 0] = 0x10;
+      buf[lOff + xlOff + 1] = 0x10;
+      buf[uOff + xcOff] = 0x80;    
+      buf[vOff + xcOff] = 0x80;
+      xlOff += 2;
+      xcOff += 1;
     }
     lOff += lumaPitchBytes;
     if (!evenLine) {
@@ -68,11 +64,42 @@ function make420PBuf(width, height) {
   return buf;
 }
 
+function makeYUV422P10Buf(width, height) {
+  var lumaPitchBytes = width * 2;
+  var chromaPitchBytes = lumaPitchBytes / 2;
+  var buf = new Buffer(lumaPitchBytes * height * 2);  
+  var lOff = 0;
+  var uOff = lumaPitchBytes * height;
+  var vOff = uOff + chromaPitchBytes * height;
+
+  for (var y=0; y<height; ++y) {
+    var xlOff = 0;
+    var xcOff = 0;
+    for (var x=0; x<width; x+=2) {
+      buf.writeUInt16LE(0x0040, lOff + xlOff);
+      buf.writeUInt16LE(0x0040, lOff + xlOff + 2);
+      xlOff += 4;
+    
+      buf.writeUInt16LE(0x0200, uOff + xcOff);
+      buf.writeUInt16LE(0x0200, vOff + xcOff);
+      xcOff += 2;
+    }
+    lOff += lumaPitchBytes;
+    uOff += chromaPitchBytes;
+    vOff += chromaPitchBytes;
+  }
+  return buf;
+}
+
 function makeTags(width, height, packing, interlace) {
   this.tags = [];
   this.tags["width"] = [ `${width}` ];
   this.tags["height"] = [ `${height}` ];
   this.tags["packing"] = [ packing ];
+  var depth = 8;
+  if ("420P" !== packing)
+    depth = 10;
+  this.tags["depth"] = [ `${depth}` ];
   this.tags["interlace"] = [ `${interlace}` ];
   return tags;
 }
@@ -92,14 +119,24 @@ function scaleConvertTest(description, onErr, fn) {
   });
 };
 
+function badDims() {
+  var srcTags = makeTags(1280, 720, 'pgroup', 0);
+  var dstTags = makeTags(21, 0, '420P', 0);
+  scaleConverter.setInfo(srcTags, dstTags);
+}
+
+function badFmt() {
+  var srcTags = makeTags(1280, 720, 'pgroup', 0);
+  var dstTags = makeTags(1920, 1080, 'pgroup', 0);
+  scaleConverter.setInfo(srcTags, dstTags);
+}
+
 scaleConvertTest('Handling bad image dimensions', 
   function (t, err) {
     t.ok(err, 'emits error');
   }, 
   function (t, scaleConverter, done) {
-    var srcTags = makeTags(1280, 720, 'pgroup', 0);
-    var dstTags = makeTags(21, 0, '420P', 0);
-    t.throws(scaleConverter.setInfo(srcTags, dstTags));
+    t.throws(badDims);
     done();
   });
 
@@ -108,9 +145,7 @@ scaleConvertTest('Handling bad image format',
     t.ok(err, 'emits error');
   }, 
   function (t, scaleConverter, done) {
-    var srcTags = makeTags(1280, 720, 'pgroup', 0);
-    var dstTags = makeTags(1920, 1080, 'pgroup', 0);
-    t.throws(scaleConverter.setInfo(srcTags, dstTags));
+    t.throws(badFmt);
     done();
   });
 
@@ -130,28 +165,7 @@ scaleConvertTest('Starting up a scaleConverter',
     done();
   });
 
-scaleConvertTest('Performing packing',
-  function (t, err) {
-    t.notOk(err, 'no error expected');
-  }, 
-  function (t, scaleConverter, done) {
-    var width = 1920;
-    var height = 1080;
-    var srcTags = makeTags(width, height, 'pgroup', 0);
-    var dstTags = makeTags(width, height, '420P', 0);
-    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
-
-    var bufArray = make4175BufArray(width, height);
-    var dstBuf = new Buffer(dstBufLen);
-    var numQueued = scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
-      t.notOk(err, 'no error expected');
-      var testDstBuf = make420PBuf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
-      done();
-    });
-  });
-
-scaleConvertTest('Performing scaling',
+scaleConvertTest('Performing scaling pgroup to 420P',
   function (t, err) {
     t.notOk(err, 'no error expected');
   }, 
@@ -165,11 +179,39 @@ scaleConvertTest('Performing scaling',
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 1);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 1);
     var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
-    var bufArray = make4175BufArray(srcWidth, srcHeight);
+    var bufArray = new Array(1);
+    var srcBuf = make4175Buf(srcWidth, srcHeight);
+    bufArray[0] = srcBuf;
     var dstBuf = new Buffer(dstBufLen);
     var numQueued = scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       var testDstBuf = make420PBuf(dstWidth, dstHeight);
+      t.deepEquals(result, testDstBuf, 'matches the expected scaling result')   
+      done();
+    });
+  });
+
+scaleConvertTest('Performing scaling pgroup to YUV422P10',
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, scaleConverter, done) {
+    var srcWidth = 1920;
+    var srcHeight = 1080;
+    var srcFormat = 'pgroup';
+    var dstWidth = 1280;
+    var dstHeight = 720;
+    var dstFormat = 'YUV422P10';
+    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 1);
+    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 1);
+    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
+    var bufArray = new Array(1);
+    var srcBuf = make4175Buf(srcWidth, srcHeight);
+    bufArray[0] = srcBuf;
+    var dstBuf = new Buffer(dstBufLen);
+    var numQueued = scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
+      t.notOk(err, 'no error expected');
+      var testDstBuf = makeYUV422P10Buf(dstWidth, dstHeight);
       t.deepEquals(result, testDstBuf, 'matches the expected scaling result')   
       done();
     });
@@ -211,7 +253,9 @@ scaleConvertTest('Handling undefined destination',
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
     var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
-    var bufArray = make4175BufArray(srcWidth, srcHeight);
+    var bufArray = new Array(1);
+    var srcBuf = make4175Buf(srcWidth, srcHeight);
+    bufArray[0] = srcBuf;
     var dstBuf;
     scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
       t.ok(err, 'should return error');
@@ -233,7 +277,9 @@ scaleConvertTest('Handling insufficient destination bytes',
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
     var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
-    var bufArray = make4175BufArray(srcWidth, srcHeight);
+    var bufArray = new Array(1);
+    var srcBuf = make4175Buf(srcWidth, srcHeight);
+    bufArray[0] = srcBuf;
     var dstBuf = new Buffer(dstBufLen - 128);
     scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
       t.ok(err, 'should return error');

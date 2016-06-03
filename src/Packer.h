@@ -13,8 +13,8 @@
   limitations under the License.
 */
 
-#ifndef DECODER_H
-#define DECODER_H
+#ifndef PACKER_H
+#define PACKER_H
 
 #include "iProcess.h"
 #include <memory>
@@ -22,10 +22,10 @@
 namespace streampunk {
 
 class MyWorker;
-class iDecoderDriver;
+class Packers;
 class EssenceInfo;
 
-class Decoder : public Nan::ObjectWrap, public iProcess {
+class Packer : public Nan::ObjectWrap, public iProcess {
 public:
   static NAN_MODULE_INIT(Init);
 
@@ -33,8 +33,8 @@ public:
   uint32_t processFrame (std::shared_ptr<iProcessData> processData);
   
 private:
-  explicit Decoder(Nan::Callback *callback);
-  ~Decoder();
+  explicit Packer(Nan::Callback *callback);
+  ~Packer();
 
   void doSetInfo(v8::Local<v8::Object> srcTags, v8::Local<v8::Object> dstTags);
 
@@ -43,7 +43,7 @@ private:
       if (!((info.Length() == 1) && (info[0]->IsFunction())))
         return Nan::ThrowError("Concater constructor requires a valid callback as the parameter");
       Nan::Callback *callback = new Nan::Callback(v8::Local<v8::Function>::Cast(info[0]));
-      Decoder *obj = new Decoder(callback);
+      Packer *obj = new Packer(callback);
       obj->Wrap(info.This());
       info.GetReturnValue().Set(info.This());
     } else {
@@ -60,15 +60,17 @@ private:
   }
 
   static NAN_METHOD(SetInfo);
-  static NAN_METHOD(Decode);
+  static NAN_METHOD(Pack);
   static NAN_METHOD(Quit);
 
   MyWorker *mWorker;
-  uint32_t mFrameNum;
   bool mSetInfoOK;
+  bool mUnityPacking;
+  uint32_t mSrcFormatBytes;
+  uint32_t mDstBytesReq;
   std::shared_ptr<EssenceInfo> mSrcVidInfo;
   std::shared_ptr<EssenceInfo> mDstVidInfo;
-  std::shared_ptr<iDecoderDriver> mDecoderDriver;
+  std::shared_ptr<Packers> mPacker;
 };
 
 } // namespace streampunk

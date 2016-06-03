@@ -16,6 +16,7 @@
 #include <nan.h>
 #include "EncoderFF.h"
 #include "Memory.h"
+#include "EssenceInfo.h"
 
 extern "C" {
   #include <libavutil/opt.h>
@@ -25,44 +26,37 @@ extern "C" {
 
 namespace streampunk {
 
-EncoderFF::EncoderFF(const std::string& format, uint32_t width, uint32_t height)
-  : mFormat(format), mWidth(width), mHeight(height), mPixFmt((uint32_t)AV_PIX_FMT_YUV420P),
+EncoderFF::EncoderFF(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<EssenceInfo> dstInfo, const Duration& duration)
+  : mEncoding(dstInfo->encodingName()), mWidth(srcInfo->width()), mHeight(srcInfo->height()), mPixFmt((uint32_t)AV_PIX_FMT_YUV420P),
     mCodec(NULL), mContext(NULL), mFrame(NULL) {
 
-  init();
-}
-
-EncoderFF::~EncoderFF() {
-  av_frame_free(&mFrame);
-  avcodec_close(mContext);
-  av_free(mContext);
-}
-
-void EncoderFF::init() {
   avcodec_register_all();
   av_log_set_level(AV_LOG_INFO);
 
   AVCodecID codecID = AV_CODEC_ID_NONE;
-  if (!mFormat.compare("h264"))
+  if (!mEncoding.compare("h264"))
     codecID = AV_CODEC_ID_H264;
-  else if (!mFormat.compare("vp8"))
+  else if (!mEncoding.compare("vp8"))
     codecID = AV_CODEC_ID_VP8;
 
   mCodec = avcodec_find_encoder(codecID);
   if (!mCodec) {
-    std::string err = std::string("Encoder for format \'") + mFormat.c_str() + "\' not found";
-    return Nan::ThrowError(err.c_str());
+    std::string err = std::string("Encoder for format \'") + mEncoding.c_str() + "\' not found";
+    Nan::ThrowError(err.c_str());
+    return; 
   }
 
   mContext = avcodec_alloc_context3(mCodec);
-  if (!mContext)
-    return Nan::ThrowError("Could not allocate video codec context");
+  if (!mContext) {
+    Nan::ThrowError("Could not allocate video codec context");
+    return; 
+  }
 
   mContext->bit_rate = 4000000;
   mContext->rc_max_rate = 5000000;
   mContext->width = mWidth;
   mContext->height = mHeight;
-  mContext->time_base = {1,25};
+  mContext->time_base = { (int)duration.numerator(), (int)duration.denominator() };
   mContext->gop_size = 10;
   mContext->max_b_frames = 1;
   mContext->pix_fmt = (AVPixelFormat)mPixFmt;
@@ -74,16 +68,30 @@ void EncoderFF::init() {
   //av_opt_set(mContext->priv_data, "allow_skip_frames", "true", AV_OPT_SEARCH_CHILDREN);
   //av_opt_set(mContext->priv_data, "cabac", "1", AV_OPT_SEARCH_CHILDREN);
 
-  if (avcodec_open2(mContext, mCodec, NULL) < 0)
-    return Nan::ThrowError("Could not open codec");
+  if (avcodec_open2(mContext, mCodec, NULL) < 0) {
+    Nan::ThrowError("Could not open codec");
+    return; 
+  }
 
   mFrame = av_frame_alloc();
-  if (!mFrame)
-    return Nan::ThrowError("Could not allocate video frame");
+  if (!mFrame) {
+    Nan::ThrowError("Could not allocate video frame");
+    return;
+  } 
+}
+
+EncoderFF::~EncoderFF() {
+  av_frame_free(&mFrame);
+  avcodec_close(mContext);
+  av_free(mContext);
 }
 
 uint32_t EncoderFF::bytesReq() const {
   return mWidth * mHeight; // todo: how should this be calculated ??
+}
+
+std::string EncoderFF::packingRequired() const {
+  return "420P";
 }
 
 void EncoderFF::encodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, 

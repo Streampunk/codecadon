@@ -47,14 +47,78 @@ function make420PBuf(width, height) {
   return buf;
 }
 
-function makeTags(width, height, packing, interlace) {
+function makeYUV422P10BufArray(width, height) {
+  var a = new Array(1);
+  var lumaPitchBytes = width * 2;
+  var chromaPitchBytes = width;
+  var buf = new Buffer(lumaPitchBytes * height * 2);  
+  var yOff = 0;
+  var uOff = lumaPitchBytes * height;
+  var vOff = uOff + chromaPitchBytes * height;
+  for (var y=0; y<height; ++y) {
+    var xlOff = 0;
+    var xcOff = 0;
+    for (var x=0; x<width; x+=2) {
+      buf[yOff + xlOff] = 0x40;
+      buf[yOff + xlOff+2] = 0x40;
+      xlOff += 4;
+
+      buf[uOff + xcOff] = 0x200;
+      buf[vOff + xcOff] = 0x200;
+      xcOff += 2;
+    }
+    yOff += lumaPitchBytes;
+    uOff += chromaPitchBytes;
+    vOff += chromaPitchBytes;
+  }   
+  a[0] = buf;
+  return a;
+}
+
+function makeV210Buf(width, height) {
+  var pitchBytes = (width + (47 - (width - 1) % 48)) * 8 / 3;
+  var buf = new Buffer(pitchBytes * height);
+  buf.fill(0);
+  var yOff = 0;
+  for (var y=0; y<height; ++y) {
+    var xOff = 0;
+    for (var x=0; x<(width-width%6)/6; ++x) {
+      buf.writeUInt32LE((0x200<<20) | (0x040<<10) | 0x200, yOff + xOff);
+      buf.writeUInt32LE((0x040<<20) | (0x200<<10) | 0x040, yOff + xOff + 4);
+      buf.writeUInt32LE((0x200<<20) | (0x040<<10) | 0x200, yOff + xOff + 8);
+      buf.writeUInt32LE((0x040<<20) | (0x200<<10) | 0x040, yOff + xOff + 12);
+      xOff += 16;
+    }
+
+    var remain = width%6;
+    if (remain) {
+      buf.writeUInt32LE((0x200<<20) | (0x040<<10) | 0x200, yOff + xOff);
+      if (2 === remain) {
+        buf.writeUInt32LE(0x040, yOff + xOff + 4);
+      } else if (4 === remain) {      
+        buf.writeUInt32LE((0x040<<20) | (0x200<<10) | 0x040, yOff + xOff + 4);
+        buf.writeUInt32LE((0x040<<10) | 0x200, yOff + xOff + 8);
+      }
+    }
+    yOff += pitchBytes;
+  }   
+  return buf;
+}
+
+function makeTags(width, height, packing, encodingName, interlace) {
   this.tags = [];
   this.tags["width"] = [ `${width}` ];
   this.tags["height"] = [ `${height}` ];
   this.tags["packing"] = [ packing ];
+  this.tags["encodingName"] = [ encodingName ];
   this.tags["interlace"] = [ `${interlace}` ];
   return tags;
 }
+
+
+var duration = new Buffer(8);
+duration.writeUIntBE(1, 0, 4);
+duration.writeUIntBE(25, 4, 4);
 
 function encodeTest(description, onErr, fn) {
   test(description, function (t) {
@@ -71,14 +135,24 @@ function encodeTest(description, onErr, fn) {
   });
 };
 
+function badDims() {
+  var srcTags = makeTags(1280, 720, '420P', 'raw', 0);
+  var dstTags = makeTags(21, 0, 'h264', 'h264', 0);
+  encoder.setInfo(srcTags, dstTags);
+}
+
+function badFmt() {
+  var srcTags = makeTags(1920, 1080, 'pgroup', 'raw', 0);
+  var dstTags = makeTags(1920, 1080, '420P', 'h264', 0);
+  encoder.setInfo(srcTags, dstTags, duration);
+}
+
 encodeTest('Handling bad image dimensions',
   function (t, err) {
     t.ok(err, 'emits error');
   }, 
   function (t, encoder, done) {
-    var srcTags = makeTags(1280, 720, 'pgroup', 0);
-    var dstTags = makeTags(21, 0, 'h264', 0);
-    t.throws(encoder.setInfo(srcTags, dstTags));
+    t.throws(badDims);
     done();
   });
 
@@ -87,9 +161,7 @@ encodeTest('Handling bad image format',
     t.ok(err, 'emits error');
   }, 
   function (t, encoder, done) {
-    var srcTags = makeTags(1920, 1080, 'pgroup', 0);
-    var dstTags = makeTags(1920, 1080, '420P', 0);
-    t.throws(encoder.setInfo(srcTags, dstTags));
+    t.throws(badFmt);
     done();
   });
 
@@ -100,15 +172,15 @@ encodeTest('Starting up an encoder',
   function (t, encoder, done) {
     var dstWidth = 1920; 
     var dstHeight = 1080; 
-    var srcTags = makeTags(1920, 1080, '420P', 0);
-    var dstTags = makeTags(dstWidth, dstHeight, 'h264', 0);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags);
+    var srcTags = makeTags(1920, 1080, '420P', 'raw', 0);
+    var dstTags = makeTags(dstWidth, dstHeight, 'h264', 'h264', 0);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
     var numBytesExpected = dstWidth * dstHeight;
     t.equal(dstBufLen, numBytesExpected, 'buffer size calculation matches the expected value');
     done();
   });
 
-encodeTest('Performing encoding',
+encodeTest('Performing h264 encoding',
   function (t, err) {
     t.notOk(err, 'no error expected');
   }, 
@@ -119,11 +191,11 @@ encodeTest('Performing encoding',
     var dstWidth = 1920; 
     var dstHeight = 1080; 
     var dstFormat = 'h264';
-    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
-    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
+    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
+    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
     var bufArray = new Array(1); 
     bufArray[0] = make420PBuf(srcWidth, srcHeight);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
     var dstBuf = new Buffer(dstBufLen);
     var numQueued = encoder.encode(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
@@ -131,6 +203,55 @@ encodeTest('Performing encoding',
       done();
     });
   });
+
+encodeTest('Performing h264 encoding from a V210 source',
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, encoder, done) {
+    var srcWidth = 1920;
+    var srcHeight = 1080;
+    var srcFormat = 'v210';
+    var dstWidth = 1920; 
+    var dstHeight = 1080; 
+    var dstFormat = 'h264';
+    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
+    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
+    var bufArray = new Array(1); 
+    bufArray[0] = makeV210Buf(srcWidth, srcHeight);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
+    var dstBuf = new Buffer(dstBufLen);
+    var numQueued = encoder.encode(bufArray, dstBuf, function(err, result) {
+      t.notOk(err, 'no error expected');
+      // todo: check for valid bitstream...
+      done();
+    });
+  });
+
+/*
+encodeTest('Performing AVCi encoding',
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, encoder, done) {
+    var srcWidth = 1920;
+    var srcHeight = 1080;
+    var srcFormat = 'YUV422P10';
+    var dstWidth = 1920; 
+    var dstHeight = 1080; 
+    var dstFormat = 'AVCi50';
+    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
+    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
+    var bufArray = makeYUV422P10BufArray(srcWidth, srcHeight);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
+    var dstBuf = new Buffer(dstBufLen);
+    encoder.encode(bufArray, dstBuf, function(err, result) {
+      t.notOk(err, 'no error expected');
+      // todo: check for valid bitstream...
+      done();
+    });
+  });
+*/
 
 encodeTest('Handling an undefined source buffer array', 
   function (t, err) {
@@ -143,9 +264,9 @@ encodeTest('Handling an undefined source buffer array',
     var dstWidth = 1920; 
     var dstHeight = 1080; 
     var dstFormat = 'h264';
-    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
-    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags);
+    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
+    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
     var bufArray;
     var dstBuf = new Buffer(dstBufLen);
     encoder.encode(bufArray, dstBuf, function(err, result) {
@@ -165,9 +286,9 @@ encodeTest('Handling an undefined destination buffer',
     var dstWidth = 1920; 
     var dstHeight = 1080; 
     var dstFormat = 'h264';
-    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
-    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags);
+    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
+    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
     var bufArray = new Array(1); 
     bufArray[0] = make420PBuf(srcWidth, srcHeight);
     var dstBuf;

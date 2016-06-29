@@ -107,6 +107,7 @@ function makeV210Buf(width, height) {
 
 function makeTags(width, height, packing, encodingName, interlace) {
   this.tags = [];
+  this.tags["format"] = [ "video" ];
   this.tags["width"] = [ `${width}` ];
   this.tags["height"] = [ `${height}` ];
   this.tags["packing"] = [ packing ];

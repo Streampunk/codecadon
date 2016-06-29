@@ -31,6 +31,7 @@ function makeBufArray(bytesPerBuf, numBuffers) {
 
 function makeTags(width, height) {
   this.tags = [];
+  this.tags["format"] = [ "video" ];
   this.tags["width"] = [ `${width}` ];
   this.tags["height"] = [ `${height}` ];
   return tags;

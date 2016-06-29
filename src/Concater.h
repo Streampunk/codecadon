@@ -22,6 +22,7 @@
 namespace streampunk {
 
 class MyWorker;
+class EssenceInfo;
 
 class Concater : public Nan::ObjectWrap, public iProcess {
 public:
@@ -60,6 +61,12 @@ private:
   static NAN_METHOD(Quit);
 
   MyWorker *mWorker;
+  bool mSetInfoOK;
+  std::shared_ptr<EssenceInfo> mSrcEssInfo;
+  bool mIsVideo;
+  uint32_t mPitchBytes;
+  bool mInterlace;
+  bool mTff;
 };
 
 } // namespace streampunk

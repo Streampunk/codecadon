@@ -51,7 +51,8 @@ private:
 };
 
 
-Concater::Concater(Nan::Callback *callback) : mWorker(new MyWorker(callback)) {
+Concater::Concater(Nan::Callback *callback) 
+  : mWorker(new MyWorker(callback)), mSetInfoOK(false), mIsVideo(true), mPitchBytes(0), mInterlace(false), mTff(true) {
   AsyncQueueWorker(mWorker);
 }
 Concater::~Concater() {}
@@ -61,34 +62,88 @@ uint32_t Concater::processFrame (std::shared_ptr<iProcessData> processData) {
   Timer t;
   std::shared_ptr<ConcatProcessData> cpd = std::dynamic_pointer_cast<ConcatProcessData>(processData);
 
-  uint32_t concatBufOffset = 0;
   tBufVec srcBufVec = cpd->srcBufVec();
   std::shared_ptr<Memory> dstBuf = cpd->dstBuf();
+  uint32_t totalBytes = 0;
+  uint32_t concatBufOffset = 0; 
+  uint32_t xBytes = 0;
+  uint32_t y = 0;
+
   for (tBufVec::const_iterator it = srcBufVec.begin(); it != srcBufVec.end(); ++it) {
     const uint8_t* srcBuf = it->first;
-
     uint32_t len = it->second;
-    if (concatBufOffset + len > dstBuf->numBytes())
-      len = dstBuf->numBytes() - concatBufOffset;
+    totalBytes += len;
 
-    memcpy (dstBuf->buf() + concatBufOffset, srcBuf, len);
-    concatBufOffset += len;
+    if (mIsVideo && mInterlace) {
+      uint32_t yStep = 2 * mPitchBytes;
+      uint32_t secondFieldStartLine = mSrcEssInfo->height() / 2;
+      
+      while (len) {
+        bool firstField = y < secondFieldStartLine;
+        uint32_t yBytes = yStep * (firstField ? y : (y - secondFieldStartLine));
+        if (mTff)
+          yBytes += firstField?0:mPitchBytes;
+        else
+          yBytes += firstField?mPitchBytes:0;
+        concatBufOffset = xBytes + yBytes;
+
+        uint32_t thisLen = len;
+        if (xBytes + len >= mPitchBytes)
+          thisLen = mPitchBytes - xBytes;
+
+        if (concatBufOffset + thisLen > dstBuf->numBytes())
+          thisLen = dstBuf->numBytes() - concatBufOffset;
+  
+        memcpy (dstBuf->buf() + concatBufOffset, srcBuf, thisLen);
+
+        len -= thisLen;
+        srcBuf += thisLen;
+        xBytes = (xBytes + thisLen) % mPitchBytes;
+        if (0 == xBytes)
+          y++;
+      }
+    } else {
+      if (concatBufOffset + len > dstBuf->numBytes())
+        len = dstBuf->numBytes() - concatBufOffset;
+
+      memcpy (dstBuf->buf() + concatBufOffset, srcBuf, len);
+      concatBufOffset += len;
+    }
   }
+  
   printf("concat : %.2fms\n", t.delta());
-  return concatBufOffset;
+  return totalBytes;
 }
 
 NAN_METHOD(Concater::SetInfo) {
   if (info.Length() != 1)
     return Nan::ThrowError("Concater SetInfo expects 1 argument");
   Local<Object> srcTags = Local<Object>::Cast(info[0]);
-  std::shared_ptr<EssenceInfo> srcVidInfo = std::make_shared<EssenceInfo>(srcTags); 
-  printf("Concater VidInfo: %s\n", srcVidInfo->toString().c_str());
 
-  uint32_t srcPitchBytes = ("pgroup"==srcVidInfo->packing())?
-    (srcVidInfo->width() * 5 / 2):
-    ((srcVidInfo->width() + 47) / 48) * 48 * 8 / 3;
-  info.GetReturnValue().Set(Nan::New(srcPitchBytes * srcVidInfo->height()));
+  Concater* obj = Nan::ObjectWrap::Unwrap<Concater>(info.Holder());
+
+  obj->mSrcEssInfo = std::make_shared<EssenceInfo>(srcTags); 
+  printf("Concater EssInfo: %s\n", obj->mSrcEssInfo->toString().c_str());
+
+  uint32_t sampleBytes = 0;
+  obj->mIsVideo = (0==obj->mSrcEssInfo->format().compare("video"));
+  if (obj->mIsVideo) {
+    if (0==obj->mSrcEssInfo->packing().compare("pgroup"))
+      obj->mPitchBytes = obj->mSrcEssInfo->width() * 5 / 2;
+    else
+      obj->mPitchBytes = (((obj->mSrcEssInfo->width() + 47) / 48) * 48 * 8 / 3);
+
+    sampleBytes = obj->mPitchBytes * obj->mSrcEssInfo->height();
+
+    obj->mInterlace = (0!=obj->mSrcEssInfo->interlace().compare("prog"));
+    obj->mTff = (0==obj->mSrcEssInfo->interlace().compare("tff"));
+  }
+  else {
+    sampleBytes = obj->mSrcEssInfo->channels() * std::stoi(obj->mSrcEssInfo->encodingName().c_str() + 1) / 8;
+  }
+
+  obj->mSetInfoOK = true;
+  info.GetReturnValue().Set(Nan::New(sampleBytes));
 }
 
 NAN_METHOD(Concater::Concat) {
@@ -106,8 +161,8 @@ NAN_METHOD(Concater::Concat) {
 
   Concater* obj = Nan::ObjectWrap::Unwrap<Concater>(info.Holder());
 
-  if (obj->mWorker == NULL)
-    return Nan::ThrowError("Attempt to concat when worker not started");
+  if (!obj->mSetInfoOK)
+    printf("Concater Concat called with incorrect setup parameters\n");
 
   std::shared_ptr<ConcatProcessData> cpd = std::make_shared<ConcatProcessData>(srcBufArray, dstBuf);
   if (cpd->srcBytes() > cpd->dstBuf()->numBytes()) {

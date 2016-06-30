@@ -166,32 +166,6 @@ scaleConvertTest('Starting up a scaleConverter',
     done();
   });
 
-scaleConvertTest('Performing scaling pgroup to 420P',
-  function (t, err) {
-    t.notOk(err, 'no error expected');
-  }, 
-  function (t, scaleConverter, done) {
-    var srcWidth = 1920;
-    var srcHeight = 1080;
-    var srcFormat = 'pgroup';
-    var dstWidth = 1280;
-    var dstHeight = 720;
-    var dstFormat = '420P';
-    var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 1);
-    var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 1);
-    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
-    var bufArray = new Array(1);
-    var srcBuf = make4175Buf(srcWidth, srcHeight);
-    bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
-    var numQueued = scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
-      t.notOk(err, 'no error expected');
-      var testDstBuf = make420PBuf(dstWidth, dstHeight);
-      t.deepEquals(result, testDstBuf, 'matches the expected scaling result')   
-      done();
-    });
-  });
-
 scaleConvertTest('Performing scaling pgroup to YUV422P10',
   function (t, err) {
     t.notOk(err, 'no error expected');

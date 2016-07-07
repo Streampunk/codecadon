@@ -71,7 +71,10 @@ public:
 
   std::string toString() const  { 
     std::stringstream ss;
-    ss << mWidth << "x" << mHeight << ", " << (mInterlace.compare("prog")?"I":"P") << ", " << mPacking; 
+    if (0==mFormat.compare("video"))
+      ss << mWidth << "x" << mHeight << ", " << (mInterlace.compare("prog")?"I":"P") << ", " << mPacking;
+    else 
+      ss << "Clock Rate " << mClockRate << ", Channels " << mChannels;
     return ss.str();
   }
 

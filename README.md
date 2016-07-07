@@ -1,3 +1,4 @@
+[![CircleCI](https://circleci.com/gh/Streampunk/codecadon.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/Streampunk/codecadon)
 # Codecadon
 
 Codecadon is a [Node.js](http://nodejs.org/) [addon](http://nodejs.org/api/addons.html) using Javascript and C++ to implement async processing for media encoding, decoding and processing.

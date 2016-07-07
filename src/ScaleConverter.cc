@@ -97,9 +97,10 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
   }
 
   mScaleConverterFF = std::make_shared<ScaleConverterFF>(mSrcVidInfo, mDstVidInfo);
-  mPacker = std::make_shared<Packers>(mSrcVidInfo->width(), mSrcVidInfo->height(), 
-                                      mSrcVidInfo->packing(), mScaleConverterFF->packingRequired());
   mUnityPacking = (mSrcVidInfo->packing() == mScaleConverterFF->packingRequired());
+  if (!mUnityPacking)
+    mPacker = std::make_shared<Packers>(mSrcVidInfo->width(), mSrcVidInfo->height(), 
+                                        mSrcVidInfo->packing(), mScaleConverterFF->packingRequired());
   mUnityScale = ((mSrcVidInfo->width() == mDstVidInfo->width()) && 
                  (mSrcVidInfo->height() == mDstVidInfo->height()) &&
                  (0==mSrcVidInfo->interlace().compare(mDstVidInfo->interlace())));

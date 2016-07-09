@@ -104,9 +104,9 @@ private:
     std::string val = unpackValue(tags, key);
     bool result = dflt;
     if (!val.empty()) {
-      if (0==val.compare("true"))
+      if ((0==val.compare("1")) || (0==val.compare("true")))
         result = true;
-      else if (0==val.compare("false"))
+      else if ((0==val.compare("0")) || (0==val.compare("false")))
         result = false;
     }
     return result;

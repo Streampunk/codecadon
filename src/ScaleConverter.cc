@@ -39,7 +39,7 @@ public:
   std::shared_ptr<Memory> srcBuf() const { return mSrcBuf; }
   std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
   std::shared_ptr<Memory> convertDstBuf() const { return mConvertDstBuf; }
-  std::shared_ptr<Memory> scaleSrcBuf() const { return mConvertDstBuf; }
+  std::shared_ptr<Memory> scaleSrcBuf() const { return mScaleSrcBuf; }
 
 private:
   std::shared_ptr<Memory> mSrcBuf;

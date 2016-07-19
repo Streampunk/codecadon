@@ -77,7 +77,8 @@ uint32_t Encoder::processFrame (std::shared_ptr<iProcessData> processData) {
   return dstBytes;
 }
 
-void Encoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, const Duration& duration) {
+void Encoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, const Duration& duration,
+                        uint32_t bitrate, uint32_t gopFrames) {
   mSrcVidInfo = std::make_shared<EssenceInfo>(srcTags); 
   printf ("Encoder SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
   mDstVidInfo = std::make_shared<EssenceInfo>(dstTags); 
@@ -104,7 +105,7 @@ void Encoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, const Dura
   }
 
   try {
-    mEncoderDriver = EncoderFactory::createEncoder(mSrcVidInfo, mDstVidInfo, duration);
+    mEncoderDriver = EncoderFactory::createEncoder(mSrcVidInfo, mDstVidInfo, duration, bitrate, gopFrames);
   } catch (std::exception& err) {
     return Nan::ThrowError(err.what());
   }
@@ -113,13 +114,15 @@ void Encoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, const Dura
 }
 
 NAN_METHOD(Encoder::SetInfo) {
-  if (info.Length() != 3)
-    return Nan::ThrowError("Encoder SetInfo expects 3 arguments");
+  if (info.Length() != 5)
+    return Nan::ThrowError("Encoder SetInfo expects 5 arguments");
   if (!info[2]->IsObject())
     return Nan::ThrowError("Encoder SetInfo requires a valid duration buffer as the third parameter");
   Local<Object> srcTags = Local<Object>::Cast(info[0]);
   Local<Object> dstTags = Local<Object>::Cast(info[1]);
   Local<Object> durObj = Local<Object>::Cast(info[2]);
+  uint32_t bitrate = Nan::To<uint32_t>(info[3]).FromJust();
+  uint32_t gopFrames = Nan::To<uint32_t>(info[4]).FromJust();
 
   Encoder* obj = Nan::ObjectWrap::Unwrap<Encoder>(info.Holder());
 
@@ -129,7 +132,7 @@ NAN_METHOD(Encoder::SetInfo) {
   Duration duration(durNum, durDen);
 
   Nan::TryCatch try_catch;
-  obj->doSetInfo(srcTags, dstTags, duration);
+  obj->doSetInfo(srcTags, dstTags, duration, bitrate, gopFrames);
   if (try_catch.HasCaught()) {
     obj->mSetInfoOK = false;
     try_catch.ReThrow();

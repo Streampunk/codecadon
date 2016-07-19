@@ -38,7 +38,8 @@ private:
   explicit Encoder(Nan::Callback *callback);
   ~Encoder();
 
-  void doSetInfo(v8::Local<v8::Object> srcTags, v8::Local<v8::Object> dstTags, const Duration& duration);
+  void doSetInfo(v8::Local<v8::Object> srcTags, v8::Local<v8::Object> dstTags, const Duration& duration,
+                 uint32_t bitrate, uint32_t gopFrames);
 
   static NAN_METHOD(New) {
     if (info.IsConstructCall()) {

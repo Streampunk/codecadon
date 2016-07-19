@@ -30,7 +30,8 @@ class Duration;
 class EssenceInfo;
 class EncoderFF : public iEncoderDriver {
 public:
-  EncoderFF(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<EssenceInfo> dstInfo, const Duration& duration);
+  EncoderFF(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<EssenceInfo> dstInfo, const Duration& duration,
+            uint32_t bitrate, uint32_t gopFrames);
   ~EncoderFF();
 
   uint32_t bytesReq() const;

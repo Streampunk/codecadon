@@ -26,7 +26,8 @@ extern "C" {
 
 namespace streampunk {
 
-EncoderFF::EncoderFF(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<EssenceInfo> dstInfo, const Duration& duration)
+EncoderFF::EncoderFF(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<EssenceInfo> dstInfo, const Duration& duration,
+                     uint32_t bitrate, uint32_t gopFrames)
   : mEncoding(dstInfo->encodingName()), mWidth(srcInfo->width()), mHeight(srcInfo->height()), mPixFmt((uint32_t)AV_PIX_FMT_YUV420P),
     mCodec(NULL), mContext(NULL), mFrame(NULL) {
 
@@ -52,12 +53,12 @@ EncoderFF::EncoderFF(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<Essen
     return; 
   }
 
-  mContext->bit_rate = 4000000;
-  mContext->rc_max_rate = 5000000;
+  mContext->bit_rate = bitrate;
+  //mContext->rc_max_rate = 5000000;
   mContext->width = mWidth;
   mContext->height = mHeight;
   mContext->time_base = { (int)duration.numerator(), (int)duration.denominator() };
-  mContext->gop_size = 10;
+  mContext->gop_size = gopFrames;
   mContext->max_b_frames = 1;
   mContext->pix_fmt = (AVPixelFormat)mPixFmt;
 

@@ -44,20 +44,22 @@ class EssenceInfo {
 public:
   EssenceInfo(Local<Object> tags)
     : mFormat(unpackStr(tags, "format", "video")),
-      mEncodingName(unpackStr(tags, "encodingName", "raw")), 
-      mClockRate(unpackNum(tags, "clockRate", 90000)),
-      mWidth(unpackNum(tags, "width", 1920)),
-      mHeight(unpackNum(tags, "height", 1080)),
-      mSampling(unpackStr(tags, "sampling", "YCbCr-4:2:2")),  
-      mDepth(unpackNum(tags, "depth", 8)),
-      mColorimetry(unpackStr(tags, "colorimetry", "BT709-2")),
-      mInterlace(unpackBool(tags, "interlace", true)?"tff":"prog"),
-      mPacking(unpackStr(tags, "packing", "pgroup")),
-      mChannels(unpackNum(tags, "channels", 0))
+      mIsVideo(0==mFormat.compare("video")),
+      mEncodingName(unpackStr(tags, "encodingName", mIsVideo?"raw":"L16")), 
+      mClockRate(unpackNum(tags, "clockRate", mIsVideo?90000:48000)),
+      mWidth(mIsVideo?unpackNum(tags, "width", 1920):0),
+      mHeight(mIsVideo?unpackNum(tags, "height", 1080):0),
+      mSampling(mIsVideo?unpackStr(tags, "sampling", "YCbCr-4:2:2"):""),  
+      mDepth(mIsVideo?unpackNum(tags, "depth", 8):0),
+      mColorimetry(mIsVideo?unpackStr(tags, "colorimetry", "BT709-2"):""),
+      mInterlace(mIsVideo?unpackBool(tags, "interlace", true)?"tff":"prog":""),
+      mPacking(mIsVideo?unpackStr(tags, "packing", "pgroup"):""),
+      mChannels(mIsVideo?0:unpackNum(tags, "channels", 2))
   {}
   ~EssenceInfo() {}
 
   std::string format() const  { return mFormat; }
+  bool isVideo() const  { return mIsVideo; }
   std::string encodingName() const  { return mEncodingName; }
   uint32_t clockRate() const  { return mClockRate; }
   uint32_t width() const  { return mWidth; }
@@ -71,15 +73,16 @@ public:
 
   std::string toString() const  { 
     std::stringstream ss;
-    if (0==mFormat.compare("video"))
-      ss << mWidth << "x" << mHeight << ", " << (mInterlace.compare("prog")?"I":"P") << ", " << mPacking;
+    if (mIsVideo)
+      ss << "Video, " << mWidth << "x" << mHeight << ", " << (mInterlace.compare("prog")?"I":"P") << ", " << mPacking;
     else 
-      ss << "Clock Rate " << mClockRate << ", Channels " << mChannels;
+      ss << "Audio, " << "Clock Rate " << mClockRate << ", Channels " << mChannels << ", Encoding " << mEncodingName;
     return ss.str();
   }
 
 private:
   std::string mFormat;
+  bool mIsVideo;
   std::string mEncodingName;
   uint32_t mClockRate;
   uint32_t mWidth;

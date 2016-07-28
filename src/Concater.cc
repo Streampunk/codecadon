@@ -126,7 +126,7 @@ NAN_METHOD(Concater::SetInfo) {
   printf("Concater EssInfo: %s\n", obj->mSrcEssInfo->toString().c_str());
 
   uint32_t sampleBytes = 0;
-  obj->mIsVideo = (0==obj->mSrcEssInfo->format().compare("video"));
+  obj->mIsVideo = obj->mSrcEssInfo->isVideo();
   if (obj->mIsVideo) {
     if (0==obj->mSrcEssInfo->packing().compare("pgroup"))
       obj->mPitchBytes = obj->mSrcEssInfo->width() * 5 / 2;

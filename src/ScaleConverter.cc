@@ -19,6 +19,7 @@
 #include "Timer.h"
 #include "Packers.h"
 #include "Memory.h"
+#include "Primitives.h"
 #include "ScaleConverterFF.h"
 #include "EssenceInfo.h"
 
@@ -76,7 +77,7 @@ uint32_t ScaleConverter::processFrame (std::shared_ptr<iProcessData> processData
   return mDstBytesReq;
 }
 
-void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
+void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8::Local<v8::Object> paramTags) {
   mSrcVidInfo = std::make_shared<EssenceInfo>(srcTags); 
   printf ("Converter SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
   mDstVidInfo = std::make_shared<EssenceInfo>(dstTags); 
@@ -96,7 +97,29 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
     Nan::ThrowError(err.c_str());
   }
 
-  mScaleConverterFF = std::make_shared<ScaleConverterFF>(mSrcVidInfo, mDstVidInfo);
+  Local<String> scaleStr = Nan::New<String>("scale").ToLocalChecked();
+  Local<Array> scaleXY = Local<Array>::Cast(Nan::Get(paramTags, scaleStr).ToLocalChecked());
+  if (!(!scaleXY->IsNull() && scaleXY->IsArray() && (scaleXY->Length() == 2)))
+    return Nan::ThrowError("Scale parameter invalid");
+
+  fXY scale(Nan::To<double>(scaleXY->Get(0)).FromJust(), Nan::To<double>(scaleXY->Get(1)).FromJust());
+  if ((scale.X > 1.0f) || (scale.Y > 1.0f)) {
+    std::string err = std::string("Unsupported Scale values X:") + std::to_string(scale.X).c_str() + ", Y:" + std::to_string(scale.Y).c_str();
+    return Nan::ThrowError(err.c_str());
+  }
+
+  Local<String> dstOffsetStr = Nan::New<String>("dstOffset").ToLocalChecked();
+  Local<Array> dstOffsetXY = Local<Array>::Cast(Nan::Get(paramTags, dstOffsetStr).ToLocalChecked());
+  if (!(!dstOffsetXY->IsNull() && dstOffsetXY->IsArray() && (dstOffsetXY->Length() == 2)))
+    return Nan::ThrowError("DstOffset parameter invalid");
+
+  fXY dstOffset(Nan::To<double>(dstOffsetXY->Get(0)).FromJust(), Nan::To<double>(dstOffsetXY->Get(1)).FromJust());
+  if ((dstOffset.X > mDstVidInfo->width() / 2) || (dstOffset.Y > mDstVidInfo->height() / 2)) {
+    std::string err = std::string("Unsupported DstOffset values X:") + std::to_string(dstOffset.X).c_str() + ", Y:" + std::to_string(dstOffset.Y).c_str();
+    return Nan::ThrowError(err.c_str());
+  }
+
+  mScaleConverterFF = std::make_shared<ScaleConverterFF>(mSrcVidInfo, mDstVidInfo, scale, dstOffset);
   mUnityPacking = (mSrcVidInfo->packing() == mScaleConverterFF->packingRequired());
   if (!mUnityPacking)
     mPacker = std::make_shared<Packers>(mSrcVidInfo->width(), mSrcVidInfo->height(), 
@@ -108,15 +131,16 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
 }
 
 NAN_METHOD(ScaleConverter::SetInfo) {
-  if (info.Length() != 2)
-    return Nan::ThrowError("Converter SetInfo expects 2 arguments");
+  if (info.Length() != 3)
+    return Nan::ThrowError("Converter SetInfo expects 3 arguments");
   Local<Object> srcTags = Local<Object>::Cast(info[0]);
   Local<Object> dstTags = Local<Object>::Cast(info[1]);
+  Local<Object> paramTags = Local<Object>::Cast(info[2]);
 
   ScaleConverter* obj = Nan::ObjectWrap::Unwrap<ScaleConverter>(info.Holder());
 
   Nan::TryCatch try_catch;
-  obj->doSetInfo(srcTags, dstTags);
+  obj->doSetInfo(srcTags, dstTags, paramTags);
   if (try_catch.HasCaught()) {
     obj->mSetInfoOK = false;
     try_catch.ReThrow();

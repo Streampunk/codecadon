@@ -105,9 +105,13 @@ function ScaleConverter(cb) {
 
 util.inherits(ScaleConverter, EventEmitter);
 
-ScaleConverter.prototype.setInfo = function(srcTags, dstTags) {
+ScaleConverter.prototype.setInfo = function(srcTags, dstTags, scaleTags) {
+  var paramTags = { scale:[1.0, 1.0], dstOffset:[0.0, 0.0] };
+  if (typeof scaleTags === 'object')
+    paramTags = scaleTags;
+
   try {
-    return this.scaleConverterAdon.setInfo(srcTags, dstTags);
+    return this.scaleConverterAdon.setInfo(srcTags, dstTags, paramTags);
   } catch (err) {
     this.emit('error', err);
     return 0;

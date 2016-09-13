@@ -37,7 +37,7 @@ private:
   explicit ScaleConverter(Nan::Callback *callback);
   ~ScaleConverter();
 
-  void doSetInfo(v8::Local<v8::Object> srcTags, v8::Local<v8::Object> dstTags);
+  void doSetInfo(v8::Local<v8::Object> srcTags, v8::Local<v8::Object> dstTags, v8::Local<v8::Object> paramTags);
 
   static NAN_METHOD(New) {
     if (info.IsConstructCall()) {

@@ -19,6 +19,7 @@
 #include "ScaleConverter.h"
 #include "Decoder.h"
 #include "Encoder.h"
+#include "Stamper.h"
 
 using namespace v8;
 
@@ -28,6 +29,7 @@ NAN_MODULE_INIT(Init) {
   streampunk::ScaleConverter::Init(target);
   streampunk::Decoder::Init(target);
   streampunk::Encoder::Init(target);
+  streampunk::Stamper::Init(target);
 }
 
 NODE_MODULE(codecadon, Init)

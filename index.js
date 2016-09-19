@@ -16,8 +16,8 @@
 'use strict';
 var codecAdon = require('bindings')('./Release/codecadon');
 
-//var SegfaultHandler = require('../../node-segfault-handler');
-//SegfaultHandler.registerHandler("crash.log");
+var SegfaultHandler = require('../node-segfault-handler');
+SegfaultHandler.registerHandler("crash.log");
 
 const util = require('util');
 const EventEmitter = require('events');
@@ -223,12 +223,52 @@ Encoder.prototype.quit = function(cb) {
   }
 }
 
+
+function Stamper(cb) {
+  this.stamperAdon = new codecAdon.Stamper(cb);
+  EventEmitter.call(this);
+}
+
+util.inherits(Stamper, EventEmitter);
+
+Stamper.prototype.setInfo = function(srcTags, dstTags) {
+  try {
+    return this.stamperAdon.setInfo(srcTags, dstTags);
+  } catch (err) {
+    this.emit('error', err);
+    return 0;
+  }
+}
+
+Stamper.prototype.copy = function(srcBufArray, dstBuf, paramTags, cb) {
+  try {
+    var numQueued = this.stamperAdon.copy(srcBufArray, dstBuf, paramTags, function(err, resultBytes) {
+      cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
+    });
+    return numQueued;
+  } catch (err) {
+    cb(err);
+  }
+}
+
+Stamper.prototype.quit = function(cb) {
+  try {
+    this.stamperAdon.quit(function(err, resultBytes) {
+      cb(err, resultBytes);
+    });
+  } catch (err) {
+    this.emit('error', err);
+  }
+}
+
+
 var codecadon = {
    Concater : Concater,
    Packer : Packer,
    ScaleConverter : ScaleConverter,
    Decoder : Decoder,
-   Encoder : Encoder
+   Encoder : Encoder,
+   Stamper : Stamper
 };
 
 module.exports = codecadon;

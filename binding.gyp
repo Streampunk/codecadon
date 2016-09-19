@@ -8,6 +8,7 @@
                    "src/ScaleConverter.cc",
                    "src/Decoder.cc",
                    "src/Encoder.cc",
+                   "src/Stamper.cc",
                    "src/ScaleConverterFF.cc",
                    "src/DecoderFF.cc",
                    "src/EncoderFF.cc",

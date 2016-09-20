@@ -94,7 +94,7 @@ uint32_t Stamper::processFrame (std::shared_ptr<iProcessData> processData) {
 
     srcYLine += srcLumaPitchBytes;
     dstYLine += dstLumaPitchBytes; 
-    if (!evenLine) {
+    if ((1 == lumaLinesPerChromaLine) || !evenLine) {
       srcULine += srcChromaPitchBytes;
       srcVLine += srcChromaPitchBytes;
       dstULine += dstChromaPitchBytes;

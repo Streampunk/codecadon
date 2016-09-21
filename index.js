@@ -240,6 +240,17 @@ Stamper.prototype.setInfo = function(srcTags, dstTags) {
   }
 }
 
+Stamper.prototype.wipe = function(dstBuf, paramTags, cb) {
+  try {
+    var numQueued = this.stamperAdon.wipe(dstBuf, paramTags, function(err, resultBytes) {
+      cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
+    });
+    return numQueued;
+  } catch (err) {
+    cb(err);
+  }
+}
+
 Stamper.prototype.copy = function(srcBufArray, dstBuf, paramTags, cb) {
   try {
     var numQueued = this.stamperAdon.copy(srcBufArray, dstBuf, paramTags, function(err, resultBytes) {

@@ -38,24 +38,24 @@ ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std:
   //printf("FFmpeg swscale %x, %s\n", swscale_version(), swscale_license());
   // !!! need pixel aspect ratios - assumed 1:1 !!!
   fXY fitScale((double)mDstWidth / mSrcWidth, (double)mDstHeight / mSrcHeight);
-  fXY boxScale(fitScale.X < fitScale.Y ? fXY(fitScale.X, fitScale.X) : fXY(fitScale.Y, fitScale.Y));
+  fXY boxScale(fitScale.x < fitScale.y ? fXY(fitScale.x, fitScale.x) : fXY(fitScale.y, fitScale.y));
   // Calculate scaling required to undo swscale's fit algorithm so that circles stay as circles!
-  mScale = fXY(fitScale.X == boxScale.X ? 1.0f : boxScale.Y / fitScale.X,
-               fitScale.Y == boxScale.Y ? 1.0f : boxScale.X / fitScale.Y);
+  mScale = fXY(fitScale.x == boxScale.x ? 1.0f : boxScale.y / fitScale.x,
+               fitScale.y == boxScale.y ? 1.0f : boxScale.x / fitScale.y);
   mScale *= mUserScale;
 
-  fXY scaledXY(mSrcWidth * boxScale.X * mUserScale.X, mSrcHeight * boxScale.Y * mUserScale.Y);
-  fXY scaledCentre((scaledXY.X - 1) / 2, (scaledXY.Y - 1) / 2);
+  fXY scaledXY(mSrcWidth * boxScale.x * mUserScale.x, mSrcHeight * boxScale.y * mUserScale.y);
+  fXY scaledCentre((scaledXY.x - 1) / 2, (scaledXY.y - 1) / 2);
   fXY dstCentre(((float)mDstWidth - 1) / 2, ((float)mDstHeight - 1) / 2);
   mDstOffset = dstCentre - scaledCentre + mUserDstOffset;
   mDoWipe = !((mScale == fXY(1.0, 1.0)) && (mDstOffset == fXY(0.0, 0.0)));
 
   printf("ScaleConverter fitScale: %1.2f:%1.2f, boxScale: %1.2f:%1.2f, mScale: %1.2f:%1.2f\n",
-    fitScale.X, fitScale.Y, boxScale.X, boxScale.Y, mScale.X, mScale.Y);
-  printf("ScaleConverter dstOffset: %1.2f:%1.2f, wipe %s\n", mDstOffset.X, mDstOffset.Y, mDoWipe?"true":"false");
+    fitScale.x, fitScale.y, boxScale.x, boxScale.y, mScale.x, mScale.y);
+  printf("ScaleConverter dstOffset: %1.2f:%1.2f, wipe %s\n", mDstOffset.x, mDstOffset.y, mDoWipe?"true":"false");
 
-  uint32_t dstWidth = (mScale.X < 1.0f) ? uint32_t(mDstWidth * mScale.X) : mDstWidth;
-  uint32_t dstHeight = (mScale.Y < 1.0f) ? uint32_t(mDstHeight * mScale.Y) : mDstHeight;
+  uint32_t dstWidth = (mScale.x < 1.0f) ? uint32_t(mDstWidth * mScale.x) : mDstWidth;
+  uint32_t dstHeight = (mScale.y < 1.0f) ? uint32_t(mDstHeight * mScale.y) : mDstHeight;
 
   uint32_t srcIshift = mSrcIlace.compare("prog")?1:0;
   uint32_t dstIshift = mDstIlace.compare("prog")?1:0;
@@ -119,8 +119,8 @@ void ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf, std::s
   uint8_t *dstData[4];
   uint32_t dstLumaBytes = mDstLinesize[0] * mDstHeight;
   uint32_t dstChromaBytes = mDstLinesize[1] * mDstHeight;
-  uint32_t dstLumaOffsetBytes = (uint32_t)mDstOffset.X * (mDstLinesize[0] / mDstWidth) + (uint32_t)mDstOffset.Y * mDstLinesize[0];
-  uint32_t dstChromaOffsetBytes = (uint32_t)mDstOffset.X + (uint32_t)mDstOffset.Y * mDstLinesize[1];
+  uint32_t dstLumaOffsetBytes = (uint32_t)mDstOffset.x * (mDstLinesize[0] / mDstWidth) + (uint32_t)mDstOffset.y * mDstLinesize[0];
+  uint32_t dstChromaOffsetBytes = (uint32_t)mDstOffset.x + (uint32_t)mDstOffset.y * mDstLinesize[1];
   if (AV_PIX_FMT_YUV420P==mDstPixFmt) {
     dstChromaBytes /= 2;
     dstChromaOffsetBytes /= 2;

@@ -28,12 +28,29 @@ using namespace v8;
 
 namespace streampunk {
 
-class StamperProcessData : public iProcessData {
+class WipeProcessData : public iProcessData {
 public:
-  StamperProcessData (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, const iXY &dstOrg)
+  WipeProcessData (std::shared_ptr<Memory> dstBuf, const iRect &wipeRect, const fCol &wipeCol)
+    : mDstBuf(dstBuf), mWipeRect(wipeRect), mWipeCol(wipeCol)
+  { }
+  ~WipeProcessData() { }
+  
+  std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
+  iRect wipeRect() const { return mWipeRect; }
+  fCol wipeCol() const { return mWipeCol; }
+
+private:
+  std::shared_ptr<Memory> mDstBuf;
+  iRect mWipeRect;
+  fCol mWipeCol;
+};
+
+class CopyProcessData : public iProcessData {
+public:
+  CopyProcessData (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, const iXY &dstOrg)
     : mSrcBuf(srcBuf), mDstBuf(dstBuf), mDstOrg(dstOrg)
   { }
-  ~StamperProcessData() { }
+  ~CopyProcessData() { }
   
   std::shared_ptr<Memory> srcBuf() const { return mSrcBuf; }
   std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
@@ -54,55 +71,20 @@ Stamper::~Stamper() {}
 // iProcess
 uint32_t Stamper::processFrame (std::shared_ptr<iProcessData> processData) {
   Timer t;
-  std::shared_ptr<StamperProcessData> spd = std::dynamic_pointer_cast<StamperProcessData>(processData);
-
-  uint32_t bytesPerPixel = 2;
-  uint32_t lumaLinesPerChromaLine = 1;
-  if (0 == mSrcVidInfo->packing().compare("420P")) {
-    bytesPerPixel = 1;
-    lumaLinesPerChromaLine = 2;
+  std::string func("stamp");
+  std::shared_ptr<WipeProcessData> wpd = std::dynamic_pointer_cast<WipeProcessData>(processData);
+  if (wpd) {
+    func = "wipe";
+    doWipe(wpd);
   }
 
-  uint32_t srcLumaPitchBytes = mSrcVidInfo->width() * bytesPerPixel;
-  uint32_t srcChromaPitchBytes = srcLumaPitchBytes / 2;
-  uint32_t srcLumaPlaneBytes = srcLumaPitchBytes * mSrcVidInfo->height();
-  uint32_t srcChromaPlaneBytes = srcChromaPitchBytes * mSrcVidInfo->height() / lumaLinesPerChromaLine;
-
-  uint32_t dstLumaPitchBytes = mDstVidInfo->width() * bytesPerPixel;
-  uint32_t dstChromaPitchBytes = dstLumaPitchBytes / 2;
-  uint32_t dstLumaPlaneBytes = dstLumaPitchBytes * mDstVidInfo->height();
-  uint32_t dstChromaPlaneBytes = dstChromaPitchBytes * mDstVidInfo->height() / lumaLinesPerChromaLine;
-
-  const uint8_t *srcYLine = spd->srcBuf()->buf();
-  const uint8_t *srcULine = srcYLine + srcLumaPlaneBytes;
-  const uint8_t *srcVLine = srcULine + srcChromaPlaneBytes;
-
-  uint8_t *dstYLine = spd->dstBuf()->buf();
-  uint8_t *dstULine = dstYLine + dstLumaPlaneBytes;
-  uint8_t *dstVLine = dstULine + dstChromaPlaneBytes;
-
-  dstYLine += spd->dstOrg().X * bytesPerPixel + dstLumaPitchBytes * spd->dstOrg().Y;
-  dstULine += spd->dstOrg().X * bytesPerPixel / 2 + dstChromaPitchBytes * spd->dstOrg().Y / lumaLinesPerChromaLine;
-  dstVLine += spd->dstOrg().X * bytesPerPixel / 2 + dstChromaPitchBytes * spd->dstOrg().Y / lumaLinesPerChromaLine;
-
-  for (uint32_t y=0; y<mSrcVidInfo->height(); ++y) {
-    bool evenLine = (y & 1) == 0;
-
-    memcpy(dstYLine, srcYLine, srcLumaPitchBytes);
-    memcpy(dstULine, srcULine, srcChromaPitchBytes);
-    memcpy(dstVLine, srcVLine, srcChromaPitchBytes);
-
-    srcYLine += srcLumaPitchBytes;
-    dstYLine += dstLumaPitchBytes; 
-    if ((1 == lumaLinesPerChromaLine) || !evenLine) {
-      srcULine += srcChromaPitchBytes;
-      srcVLine += srcChromaPitchBytes;
-      dstULine += dstChromaPitchBytes;
-      dstVLine += dstChromaPitchBytes;
-    } 
+  std::shared_ptr<CopyProcessData> cpd = std::dynamic_pointer_cast<CopyProcessData>(processData);
+  if (cpd) {
+    func = "copy";
+    doCopy(cpd);
   }
 
-  printf("stamp: %.2fms\n", t.delta());
+  printf("%s: %.2fms\n", func.c_str(), t.delta());
 
   return mDstBytesReq;
 }
@@ -133,6 +115,116 @@ void Stamper::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
   mDstBytesReq = getFormatBytes(mDstVidInfo->packing(), mDstVidInfo->width(), mDstVidInfo->height());
 }
 
+void Stamper::doWipe(std::shared_ptr<WipeProcessData> wpd) {
+  uint32_t blackLevel = 64;
+  uint32_t lumaRange = 940 - blackLevel;
+  uint32_t chromaRange = 960 - blackLevel;
+  uint32_t chromaMid = 512;
+  uint32_t bytesPerPixel = 2;
+  uint32_t lumaLinesPerChromaLine = 1;
+  if (0 == mSrcVidInfo->packing().compare("420P")) {
+    blackLevel = 16;
+    lumaRange = 235 - blackLevel;
+    chromaRange = 240 - blackLevel;
+    chromaMid = 128;
+    bytesPerPixel = 1;
+    lumaLinesPerChromaLine = 2;
+  }
+
+  iCol wipeCol (uint16_t(wpd->wipeCol().y * lumaRange + blackLevel),
+                uint16_t(wpd->wipeCol().u * chromaRange + chromaMid),  
+                uint16_t(wpd->wipeCol().v * chromaRange + chromaMid));
+
+  uint32_t dstLumaPitchBytes = mDstVidInfo->width() * bytesPerPixel;
+  uint32_t dstChromaPitchBytes = dstLumaPitchBytes / 2;
+  uint32_t dstLumaPlaneBytes = dstLumaPitchBytes * mDstVidInfo->height();
+  uint32_t dstChromaPlaneBytes = dstChromaPitchBytes * mDstVidInfo->height() / lumaLinesPerChromaLine;
+
+  uint8_t *dstYLine = wpd->dstBuf()->buf();
+  uint8_t *dstULine = dstYLine + dstLumaPlaneBytes;
+  uint8_t *dstVLine = dstULine + dstChromaPlaneBytes;
+
+  dstYLine += wpd->wipeRect().org.x * bytesPerPixel + dstLumaPitchBytes * wpd->wipeRect().org.y;
+  dstULine += wpd->wipeRect().org.x * bytesPerPixel / 2 + dstChromaPitchBytes * wpd->wipeRect().org.y / lumaLinesPerChromaLine;
+  dstVLine += wpd->wipeRect().org.x * bytesPerPixel / 2 + dstChromaPitchBytes * wpd->wipeRect().org.y / lumaLinesPerChromaLine;
+
+  for (int32_t y=0; y<wpd->wipeRect().len.y; ++y) {
+    bool evenLine = (y & 1) == 0;
+
+    if (1==bytesPerPixel) {
+      // 8-bit fill
+      memset (dstYLine, wipeCol.y, wpd->wipeRect().len.x);
+      memset (dstULine, wipeCol.u, wpd->wipeRect().len.x / 2);
+      memset (dstVLine, wipeCol.v, wpd->wipeRect().len.x / 2);
+    } else {
+      // 10-bit fill
+      uint32_t *dstY32Line = (uint32_t *)dstYLine;
+      uint16_t *dstU16Line = (uint16_t *)dstULine;
+      uint16_t *dstV16Line = (uint16_t *)dstVLine;
+
+      for (int32_t x=0; x < wpd->wipeRect().len.x / 2; ++x) { 
+        *dstY32Line++ = (wipeCol.y << 16) | wipeCol.y;
+        *dstU16Line++ = wipeCol.u;
+        *dstV16Line++ = wipeCol.v;
+      }
+    }
+
+    dstYLine += dstLumaPitchBytes; 
+    if ((1 == lumaLinesPerChromaLine) || !evenLine) {
+      dstULine += dstChromaPitchBytes;
+      dstVLine += dstChromaPitchBytes;
+    } 
+  }
+}
+
+void Stamper::doCopy(std::shared_ptr<CopyProcessData> cpd) {
+  uint32_t bytesPerPixel = 2;
+  uint32_t lumaLinesPerChromaLine = 1;
+  if (0 == mSrcVidInfo->packing().compare("420P")) {
+    bytesPerPixel = 1;
+    lumaLinesPerChromaLine = 2;
+  }
+
+  uint32_t srcLumaPitchBytes = mSrcVidInfo->width() * bytesPerPixel;
+  uint32_t srcChromaPitchBytes = srcLumaPitchBytes / 2;
+  uint32_t srcLumaPlaneBytes = srcLumaPitchBytes * mSrcVidInfo->height();
+  uint32_t srcChromaPlaneBytes = srcChromaPitchBytes * mSrcVidInfo->height() / lumaLinesPerChromaLine;
+
+  uint32_t dstLumaPitchBytes = mDstVidInfo->width() * bytesPerPixel;
+  uint32_t dstChromaPitchBytes = dstLumaPitchBytes / 2;
+  uint32_t dstLumaPlaneBytes = dstLumaPitchBytes * mDstVidInfo->height();
+  uint32_t dstChromaPlaneBytes = dstChromaPitchBytes * mDstVidInfo->height() / lumaLinesPerChromaLine;
+
+  const uint8_t *srcYLine = cpd->srcBuf()->buf();
+  const uint8_t *srcULine = srcYLine + srcLumaPlaneBytes;
+  const uint8_t *srcVLine = srcULine + srcChromaPlaneBytes;
+
+  uint8_t *dstYLine = cpd->dstBuf()->buf();
+  uint8_t *dstULine = dstYLine + dstLumaPlaneBytes;
+  uint8_t *dstVLine = dstULine + dstChromaPlaneBytes;
+
+  dstYLine += cpd->dstOrg().x * bytesPerPixel + dstLumaPitchBytes * cpd->dstOrg().y;
+  dstULine += cpd->dstOrg().x * bytesPerPixel / 2 + dstChromaPitchBytes * cpd->dstOrg().y / lumaLinesPerChromaLine;
+  dstVLine += cpd->dstOrg().x * bytesPerPixel / 2 + dstChromaPitchBytes * cpd->dstOrg().y / lumaLinesPerChromaLine;
+
+  for (uint32_t y=0; y<mSrcVidInfo->height(); ++y) {
+    bool evenLine = (y & 1) == 0;
+
+    memcpy(dstYLine, srcYLine, srcLumaPitchBytes);
+    memcpy(dstULine, srcULine, srcChromaPitchBytes);
+    memcpy(dstVLine, srcVLine, srcChromaPitchBytes);
+
+    srcYLine += srcLumaPitchBytes;
+    dstYLine += dstLumaPitchBytes; 
+    if ((1 == lumaLinesPerChromaLine) || !evenLine) {
+      srcULine += srcChromaPitchBytes;
+      srcVLine += srcChromaPitchBytes;
+      dstULine += dstChromaPitchBytes;
+      dstVLine += dstChromaPitchBytes;
+    } 
+  }
+}
+
 NAN_METHOD(Stamper::SetInfo) {
   if (info.Length() != 2)
     return Nan::ThrowError("Stamper SetInfo expects 2 arguments");
@@ -151,6 +243,53 @@ NAN_METHOD(Stamper::SetInfo) {
 
   obj->mSetInfoOK = true;
   info.GetReturnValue().Set(Nan::New(obj->mDstBytesReq));
+}
+
+NAN_METHOD(Stamper::Wipe) {
+  if (info.Length() != 3)
+    return Nan::ThrowError("Stamper Wipe expects 3 arguments");
+  if (!info[0]->IsObject())
+    return Nan::ThrowError("Stamper Wipe requires a valid destination buffer as the first parameter");
+  if (!info[1]->IsObject())
+    return Nan::ThrowError("Stamper Wipe requires a valid params object as the second parameter");
+  if (!info[2]->IsFunction())
+    return Nan::ThrowError("Stamper Wipe requires a valid callback as the third parameter");
+
+  Local<Object> dstBufObj = Local<Object>::Cast(info[0]);
+  Local<Object> paramTags = Local<Object>::Cast(info[1]);
+  Local<Function> callback = Local<Function>::Cast(info[2]);
+
+  Stamper* obj = Nan::ObjectWrap::Unwrap<Stamper>(info.Holder());
+
+  if (!obj->mSetInfoOK)
+    return Nan::ThrowError("Wipe called with incorrect setup parameters");
+
+  if (obj->mDstBytesReq > node::Buffer::Length(dstBufObj))
+    return Nan::ThrowError("Insufficient destination buffer for specified format");
+
+  std::shared_ptr<Memory> dstBuf = Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj));
+
+  Local<String> wipeRectStr = Nan::New<String>("wipeRect").ToLocalChecked();
+  Local<Array> wipeRectArr = Local<Array>::Cast(Nan::Get(paramTags, wipeRectStr).ToLocalChecked());
+  if (!(!wipeRectArr->IsNull() && wipeRectArr->IsArray() && (wipeRectArr->Length() == 4)))
+    return Nan::ThrowError("wipeRect parameter invalid");
+  iRect wipeRect(iXY(Nan::To<uint32_t>(wipeRectArr->Get(0)).FromJust(), Nan::To<uint32_t>(wipeRectArr->Get(1)).FromJust()),
+                 iXY(Nan::To<uint32_t>(wipeRectArr->Get(2)).FromJust(), Nan::To<uint32_t>(wipeRectArr->Get(3)).FromJust()));
+
+  Local<String> wipeColStr = Nan::New<String>("wipeCol").ToLocalChecked();
+  Local<Array> wipeColArr = Local<Array>::Cast(Nan::Get(paramTags, wipeColStr).ToLocalChecked());
+  if (!(!wipeColArr->IsNull() && wipeColArr->IsArray() && (wipeColArr->Length() == 3)))
+    return Nan::ThrowError("wipeCol parameter invalid");
+
+  fCol wipeCol(Nan::To<double>(wipeColArr->Get(0)).FromJust(), 
+               Nan::To<double>(wipeColArr->Get(1)).FromJust(),
+               Nan::To<double>(wipeColArr->Get(2)).FromJust());
+
+  std::shared_ptr<iProcessData> wpd = 
+    std::make_shared<WipeProcessData>(dstBuf, wipeRect, wipeCol);
+  obj->mWorker->doFrame(wpd, obj, new Nan::Callback(callback));
+
+  info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));
 }
 
 NAN_METHOD(Stamper::Copy) {
@@ -193,9 +332,9 @@ NAN_METHOD(Stamper::Copy) {
     return Nan::ThrowError("dstOrg parameter invalid");
   iXY dstOrg(Nan::To<uint32_t>(dstOrgXY->Get(0)).FromJust(), Nan::To<uint32_t>(dstOrgXY->Get(1)).FromJust());
 
-  std::shared_ptr<iProcessData> spd = 
-    std::make_shared<StamperProcessData>(srcBuf, dstBuf, dstOrg);
-  obj->mWorker->doFrame(spd, obj, new Nan::Callback(callback));
+  std::shared_ptr<iProcessData> cpd = 
+    std::make_shared<CopyProcessData>(srcBuf, dstBuf, dstOrg);
+  obj->mWorker->doFrame(cpd, obj, new Nan::Callback(callback));
 
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));
 }
@@ -220,6 +359,7 @@ NAN_MODULE_INIT(Stamper::Init) {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   SetPrototypeMethod(tpl, "setInfo", SetInfo);
+  SetPrototypeMethod(tpl, "wipe", Wipe);
   SetPrototypeMethod(tpl, "copy", Copy);
   SetPrototypeMethod(tpl, "quit", Quit);
 

@@ -20,26 +20,26 @@ namespace streampunk {
 
 template <class T> class XY {
 public:
-  XY(T x, T y) : X(x), Y(y) {} 
-  XY(const XY &other) : X(other.X), Y(other.Y) {} 
+  XY(T cx, T cy) : x(cx), y(cy) {} 
+  XY(const XY &other) : x(other.x), y(other.y) {} 
 
-  XY& operator +=(const XY &rhs) { X += rhs.X; Y += rhs.Y; return *this; }
+  XY& operator +=(const XY &rhs) { x += rhs.x; y += rhs.y; return *this; }
   friend XY& operator + (XY &lhs, const XY &rhs) { return lhs += rhs; }
 
-  XY& operator -=(const XY &rhs) { X -= rhs.X; Y -= rhs.Y; return *this; }
+  XY& operator -=(const XY &rhs) { x -= rhs.x; y -= rhs.y; return *this; }
   friend XY& operator - (XY &lhs, const XY &rhs) { return lhs -= rhs; }
 
-  XY& operator *=(const XY &rhs) { X *= rhs.X; Y *= rhs.Y; return *this; }
+  XY& operator *=(const XY &rhs) { x *= rhs.x; y *= rhs.y; return *this; }
   friend XY& operator * (XY &lhs, const XY &rhs) { return lhs *= rhs; }
 
-  XY& operator /=(const XY &rhs) { X /= rhs.X; Y /= rhs.Y; return *this; }
+  XY& operator /=(const XY &rhs) { x /= rhs.x; y /= rhs.y; return *this; }
   friend XY& operator / (XY &lhs, const XY &rhs) { return lhs /= rhs; }
 
-  friend bool operator ==(const XY &lhs, const XY &rhs) { return (lhs.X == rhs.X) && (lhs.Y == rhs.Y); }
+  friend bool operator ==(const XY &lhs, const XY &rhs) { return (lhs.x == rhs.x) && (lhs.y == rhs.y); }
   friend bool operator !=(const XY &lhs, const XY &rhs) { return !(lhs == rhs); }
 
-  T X;
-  T Y;
+  T x;
+  T y;
 
 private:
   XY();
@@ -47,6 +47,45 @@ private:
 
 typedef XY<int32_t> iXY;
 typedef XY<double> fXY;
+
+
+template <class T> class Rect {
+public:
+  Rect(T o, T l) : org(o), len(l) {} 
+  Rect(const Rect &other) : org(other.org), len(other.len) {} 
+
+  friend bool operator ==(const Rect &lhs, const Rect &rhs) { return (lhs.org == rhs.org) && (lhs.len == rhs.len); }
+  friend bool operator !=(const Rect &lhs, const Rect &rhs) { return !(lhs == rhs); }
+
+  T org;
+  T len;
+
+private:
+  Rect();
+};
+
+typedef Rect<iXY> iRect;
+typedef Rect<fXY> fRect;
+
+
+template <class T> class Col {
+public:
+  Col(T cy, T cu, T cv) : y(cy), u(cu), v(cv) {} 
+  Col(const Col &other) : y(other.y), u(other.u), v(other.v) {} 
+
+  friend bool operator ==(const Col &lhs, const Col &rhs) { return (lhs.y == rhs.y) && (lhs.u == rhs.u) && (lhs.v == rhs.v); }
+  friend bool operator !=(const Col &lhs, const Col &rhs) { return !(lhs == rhs); }
+
+  T y;
+  T u;
+  T v;
+
+private:
+  Col();
+};
+
+typedef Col<int16_t> iCol;
+typedef Col<double> fCol;
 
 } // namespace streampunk
 

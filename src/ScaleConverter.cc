@@ -103,8 +103,8 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
     return Nan::ThrowError("Scale parameter invalid");
 
   fXY scale(Nan::To<double>(scaleXY->Get(0)).FromJust(), Nan::To<double>(scaleXY->Get(1)).FromJust());
-  if ((scale.X > 1.0f) || (scale.Y > 1.0f)) {
-    std::string err = std::string("Unsupported Scale values X:") + std::to_string(scale.X).c_str() + ", Y:" + std::to_string(scale.Y).c_str();
+  if ((scale.x > 1.0f) || (scale.y > 1.0f)) {
+    std::string err = std::string("Unsupported Scale values X:") + std::to_string(scale.x).c_str() + ", Y:" + std::to_string(scale.y).c_str();
     return Nan::ThrowError(err.c_str());
   }
 
@@ -114,8 +114,8 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
     return Nan::ThrowError("DstOffset parameter invalid");
 
   fXY dstOffset(Nan::To<double>(dstOffsetXY->Get(0)).FromJust(), Nan::To<double>(dstOffsetXY->Get(1)).FromJust());
-  if ((dstOffset.X > mDstVidInfo->width() / 2) || (dstOffset.Y > mDstVidInfo->height() / 2)) {
-    std::string err = std::string("Unsupported DstOffset values X:") + std::to_string(dstOffset.X).c_str() + ", Y:" + std::to_string(dstOffset.Y).c_str();
+  if ((dstOffset.x > mDstVidInfo->width() / 2) || (dstOffset.y > mDstVidInfo->height() / 2)) {
+    std::string err = std::string("Unsupported DstOffset values X:") + std::to_string(dstOffset.x).c_str() + ", Y:" + std::to_string(dstOffset.y).c_str();
     return Nan::ThrowError(err.c_str());
   }
 

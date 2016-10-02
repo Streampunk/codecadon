@@ -25,17 +25,42 @@ extern "C" {
 
 namespace streampunk {
 
-ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std::shared_ptr<EssenceInfo> dstVidInfo)
-  : mSwsContext(NULL), 
+ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std::shared_ptr<EssenceInfo> dstVidInfo,
+                                   const fXY &userScale, const fXY &userDstOffset)
+  : mSwsContext(NULL),
     mSrcWidth(srcVidInfo->width()), mSrcHeight(srcVidInfo->height()), mSrcIlace(srcVidInfo->interlace()),
-    mSrcPixFmt((8==srcVidInfo->depth())?AV_PIX_FMT_YUV420P:AV_PIX_FMT_YUV422P10LE), 
+    mSrcPixFmt((8==srcVidInfo->depth())?AV_PIX_FMT_YUV420P:AV_PIX_FMT_YUV422P10LE),
     mDstWidth(dstVidInfo->width()), mDstHeight(dstVidInfo->height()), mDstIlace(dstVidInfo->interlace()),
-    mDstPixFmt((8==dstVidInfo->depth())?AV_PIX_FMT_YUV420P:AV_PIX_FMT_YUV422P10LE) {
+    mDstPixFmt((8==dstVidInfo->depth())?AV_PIX_FMT_YUV420P:AV_PIX_FMT_YUV422P10LE),
+    mUserScale(userScale), mUserDstOffset(userDstOffset), 
+    mScale(fXY(1.0f, 1.0f)), mDstOffset(fXY(0.0f, 0.0f)), mDoWipe(false) {
+
+  //printf("FFmpeg swscale %x, %s\n", swscale_version(), swscale_license());
+  // !!! need pixel aspect ratios - assumed 1:1 !!!
+  fXY fitScale((double)mDstWidth / mSrcWidth, (double)mDstHeight / mSrcHeight);
+  fXY boxScale(fitScale.x < fitScale.y ? fXY(fitScale.x, fitScale.x) : fXY(fitScale.y, fitScale.y));
+  // Calculate scaling required to undo swscale's fit algorithm so that circles stay as circles!
+  mScale = fXY(fitScale.x == boxScale.x ? 1.0f : boxScale.y / fitScale.x,
+               fitScale.y == boxScale.y ? 1.0f : boxScale.x / fitScale.y);
+  mScale *= mUserScale;
+
+  fXY scaledXY(mSrcWidth * boxScale.x * mUserScale.x, mSrcHeight * boxScale.y * mUserScale.y);
+  fXY scaledCentre((scaledXY.x - 1) / 2, (scaledXY.y - 1) / 2);
+  fXY dstCentre(((float)mDstWidth - 1) / 2, ((float)mDstHeight - 1) / 2);
+  mDstOffset = dstCentre - scaledCentre + mUserDstOffset;
+  mDoWipe = !((mScale == fXY(1.0, 1.0)) && (mDstOffset == fXY(0.0, 0.0)));
+
+  printf("ScaleConverter fitScale: %1.2f:%1.2f, boxScale: %1.2f:%1.2f, mScale: %1.2f:%1.2f\n",
+    fitScale.x, fitScale.y, boxScale.x, boxScale.y, mScale.x, mScale.y);
+  printf("ScaleConverter dstOffset: %1.2f:%1.2f, wipe %s\n", mDstOffset.x, mDstOffset.y, mDoWipe?"true":"false");
+
+  uint32_t dstWidth = (mScale.x < 1.0f) ? uint32_t(mDstWidth * mScale.x) : mDstWidth;
+  uint32_t dstHeight = (mScale.y < 1.0f) ? uint32_t(mDstHeight * mScale.y) : mDstHeight;
 
   uint32_t srcIshift = mSrcIlace.compare("prog")?1:0;
   uint32_t dstIshift = mDstIlace.compare("prog")?1:0;
   mSwsContext = sws_getContext(mSrcWidth, mSrcHeight>>srcIshift, (AVPixelFormat)mSrcPixFmt,
-                               mDstWidth, mDstHeight>>dstIshift, (AVPixelFormat)mDstPixFmt,
+                               dstWidth, dstHeight>>dstIshift, (AVPixelFormat)mDstPixFmt,
                                SWS_BILINEAR, NULL, NULL, NULL);
   if (!mSwsContext) {
     fprintf(stderr,
@@ -80,6 +105,7 @@ void ScaleConverterFF::scaleConvertField (uint8_t **srcData, uint8_t **dstData, 
 }
 
 void ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf) { 
+
   uint8_t *srcData[4];
   uint32_t srcLumaBytes = mSrcLinesize[0] * mSrcHeight;
   uint32_t srcChromaBytes = mSrcLinesize[1] * mSrcHeight;
@@ -93,11 +119,34 @@ void ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf, std::s
   uint8_t *dstData[4];
   uint32_t dstLumaBytes = mDstLinesize[0] * mDstHeight;
   uint32_t dstChromaBytes = mDstLinesize[1] * mDstHeight;
-  if (AV_PIX_FMT_YUV420P==mDstPixFmt)
+  uint32_t dstLumaOffsetBytes = (uint32_t)mDstOffset.x * (mDstLinesize[0] / mDstWidth) + (uint32_t)mDstOffset.y * mDstLinesize[0];
+  uint32_t dstChromaOffsetBytes = (uint32_t)mDstOffset.x + (uint32_t)mDstOffset.y * mDstLinesize[1];
+  if (AV_PIX_FMT_YUV420P==mDstPixFmt) {
     dstChromaBytes /= 2;
-  dstData[0] = (uint8_t *)dstBuf->buf();
-  dstData[1] = (uint8_t *)(dstBuf->buf() + dstLumaBytes);
-  dstData[2] = (uint8_t *)(dstBuf->buf() + dstLumaBytes + dstChromaBytes);
+    dstChromaOffsetBytes /= 2;
+  }
+
+  if (mDoWipe) {
+    if (AV_PIX_FMT_YUV420P==mDstPixFmt) {
+      // 8-bit fill
+      memset (dstBuf->buf(), 0x10, dstLumaBytes);
+      memset (dstBuf->buf() + dstLumaBytes, 0x80, dstChromaBytes);
+      memset (dstBuf->buf() + dstLumaBytes + dstChromaBytes, 0x80, dstChromaBytes);
+    } else {
+      // 10-bit fill
+      uint16_t *buf;
+      buf = (uint16_t *)dstBuf->buf();
+      for (uint32_t i=0; i < dstLumaBytes / 2; ++i) { buf[i] = 0x40; } 
+      buf = (uint16_t *)dstBuf->buf() + dstLumaBytes;
+      for (uint32_t i=0; i < dstChromaBytes / 2; ++i) { buf[i] = 0x200; } 
+      buf = (uint16_t *)dstBuf->buf() + dstLumaBytes + dstChromaBytes;
+      for (uint32_t i=0; i < dstChromaBytes / 2; ++i) { buf[i] = 0x200; } 
+    }
+  }
+
+  dstData[0] = (uint8_t *)dstBuf->buf() + dstLumaOffsetBytes;
+  dstData[1] = (uint8_t *)(dstBuf->buf() + dstLumaBytes) + dstChromaOffsetBytes;
+  dstData[2] = (uint8_t *)(dstBuf->buf() + dstLumaBytes + dstChromaBytes) + dstChromaOffsetBytes;
   dstData[3] = NULL;
 
   bool srcProgressive = (0 == mSrcIlace.compare("prog"));

@@ -17,6 +17,7 @@
 #define SCALECONVERTERFF_H
 
 #include <memory>
+#include "Primitives.h"
 struct SwsContext;
 
 namespace streampunk {
@@ -25,7 +26,8 @@ class Memory;
 class EssenceInfo;
 class ScaleConverterFF {
 public:
-  ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std::shared_ptr<EssenceInfo> dstVidInfo);
+  ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std::shared_ptr<EssenceInfo> dstVidInfo,
+                   const fXY &userScale, const fXY &userDstOffset);
   ~ScaleConverterFF();
 
   std::string packingRequired() const;
@@ -41,6 +43,11 @@ private:
   const uint32_t mDstHeight;
   const std::string mDstIlace;
   const uint32_t mDstPixFmt;
+  const fXY mUserScale;
+  const fXY mUserDstOffset;
+  fXY mScale;
+  fXY mDstOffset;
+  bool mDoWipe;
   uint32_t mSrcLinesize[4], mDstLinesize[4];
 
   void scaleConvertField (uint8_t **srcData, uint8_t **dstData, uint32_t srcField, uint32_t dstField);

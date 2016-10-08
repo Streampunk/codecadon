@@ -16,39 +16,78 @@
       "include_dirs": [ "<!(node -e \"require('nan')\")", "ffmpeg/include" ],
       'conditions': [
         ['OS=="linux"', {
-          "cflags_cc!": [ 
-            "-fno-rtti",
-            "-fno-exceptions" 
-          ],
-          "cflags_cc": [
-            "-std=c++11",
-            "-fexceptions"
-          ],
-          "link_settings": {
-            "libraries": [
-              "<@(module_root_dir)/build/Release/libavcodec.so.57",
-              "<@(module_root_dir)/build/Release/libavutil.so.55",
-              "<@(module_root_dir)/build/Release/libswscale.so.4",
-              "<@(module_root_dir)/build/Release/libopenh264.so.1",
-              "<@(module_root_dir)/build/Release/libvpx.so.3"
-            ],
-            "ldflags": [
-              "-L<@(module_root_dir)/build/Release",
-              "-Wl,-rpath,<@(module_root_dir)/build/Release"
-            ]
-          },
-          "copies": [
-            {
-              "destination": "build/Release/",
-              "files": [
-                "<!@(ls -1 ffmpeg/bin/libavcodec.so*)",
-                "<!@(ls -1 ffmpeg/bin/libavutil.so*)",
-                "<!@(ls -1 ffmpeg/bin/libswscale.so*)",
-                "<!@(ls -1 ffmpeg/bin/libopenh264*.so*)",
-                "<!@(ls -1 ffmpeg/bin/libvpx*.so*)"
-              ]
-            }
-          ] 
+          "conditions": [
+            ['target_arch=="arm"', {  
+                "cflags_cc!": [ 
+                  "-fno-rtti",
+                  "-fno-exceptions" 
+                 ],
+                 "cflags_cc": [
+                   "-std=c++11",
+                   "-fexceptions"
+                 ],
+               "link_settings": {
+                 "libraries": [
+                   "<@(module_root_dir)/build/Release/libavcodec.so.57",
+                   "<@(module_root_dir)/build/Release/libavutil.so.55",
+                   "<@(module_root_dir)/build/Release/libswscale.so.4",
+                   "<@(module_root_dir)/build/Release/libopenh264.so.3",
+                   "<@(module_root_dir)/build/Release/libvpx.so.4"
+                 ],
+                 "ldflags": [
+                   "-L<@(module_root_dir)/build/Release",
+                   "-Wl,-rpath,<@(module_root_dir)/build/Release"
+                 ]
+               },
+               "copies": [
+                 {
+                   "destination": "build/Release/",
+                   "files": [
+                     "<!@(ls -1 ffmpeg/bin_armhf/libavcodec.so*)",
+                     "<!@(ls -1 ffmpeg/bin_armhf/libavutil.so*)",
+                     "<!@(ls -1 ffmpeg/bin_armhf/libswscale.so*)",
+                     "<!@(ls -1 ffmpeg/bin_armhf/libopenh264*.so*)",
+                     "<!@(ls -1 ffmpeg/bin_armhf/libvpx*.so*)"
+                   ]
+                 }
+               ]
+              },   
+              { # ia32 or x64
+                "cflags_cc!": [ 
+                  "-fno-rtti",
+                  "-fno-exceptions" 
+                 ],
+                 "cflags_cc": [
+                   "-std=c++11",
+                   "-fexceptions"
+                 ],
+               "link_settings": {
+                 "libraries": [
+                   "<@(module_root_dir)/build/Release/libavcodec.so.57",
+                   "<@(module_root_dir)/build/Release/libavutil.so.55",
+                   "<@(module_root_dir)/build/Release/libswscale.so.4",
+                   "<@(module_root_dir)/build/Release/libopenh264.so.1",
+                   "<@(module_root_dir)/build/Release/libvpx.so.3"
+                 ],
+                 "ldflags": [
+                   "-L<@(module_root_dir)/build/Release",
+                   "-Wl,-rpath,<@(module_root_dir)/build/Release"
+                 ]
+               },
+               "copies": [
+                 {
+                   "destination": "build/Release/",
+                   "files": [
+                     "<!@(ls -1 ffmpeg/bin/libavcodec.so*)",
+                     "<!@(ls -1 ffmpeg/bin/libavutil.so*)",
+                     "<!@(ls -1 ffmpeg/bin/libswscale.so*)",
+                     "<!@(ls -1 ffmpeg/bin/libopenh264*.so*)",
+                     "<!@(ls -1 ffmpeg/bin/libvpx*.so*)"
+                   ]
+                 }
+               ]
+             }]
+           ]
         }],
         ['OS=="mac"', {
           'xcode_settings': {

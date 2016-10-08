@@ -17,45 +17,46 @@
       'conditions': [
         ['OS=="linux"', {
           "conditions": [
-            ['target_arch=="arm"', {  
-                "cflags_cc!": [ 
+            ['target_arch=="arm"',
+              {
+                "cflags_cc!": [
                   "-fno-rtti",
-                  "-fno-exceptions" 
-                 ],
-                 "cflags_cc": [
-                   "-std=c++11",
-                   "-fexceptions"
-                 ],
-               "link_settings": {
-                 "libraries": [
-                   "<@(module_root_dir)/build/Release/libavcodec.so.57",
-                   "<@(module_root_dir)/build/Release/libavutil.so.55",
-                   "<@(module_root_dir)/build/Release/libswscale.so.4",
-                   "<@(module_root_dir)/build/Release/libopenh264.so.3",
-                   "<@(module_root_dir)/build/Release/libvpx.so.4"
-                 ],
-                 "ldflags": [
-                   "-L<@(module_root_dir)/build/Release",
-                   "-Wl,-rpath,<@(module_root_dir)/build/Release"
-                 ]
-               },
-               "copies": [
-                 {
-                   "destination": "build/Release/",
-                   "files": [
-                     "<!@(ls -1 ffmpeg/bin_armhf/libavcodec.so*)",
-                     "<!@(ls -1 ffmpeg/bin_armhf/libavutil.so*)",
-                     "<!@(ls -1 ffmpeg/bin_armhf/libswscale.so*)",
-                     "<!@(ls -1 ffmpeg/bin_armhf/libopenh264*.so*)",
-                     "<!@(ls -1 ffmpeg/bin_armhf/libvpx*.so*)"
-                   ]
-                 }
-               ]
-              },   
+                  "-fno-exceptions"
+                ],
+                "cflags_cc": [
+                  "-std=c++11",
+                  "-fexceptions"
+                ],
+                "link_settings": {
+                  "libraries": [
+                    "<@(module_root_dir)/build/Release/libavcodec.so.57",
+                    "<@(module_root_dir)/build/Release/libavutil.so.55",
+                    "<@(module_root_dir)/build/Release/libswscale.so.4",
+                    "<@(module_root_dir)/build/Release/libopenh264.so.3",
+                    "<@(module_root_dir)/build/Release/libvpx.so.4"
+                  ],
+                  "ldflags": [
+                    "-L<@(module_root_dir)/build/Release",
+                    "-Wl,-rpath,<@(module_root_dir)/build/Release"
+                  ]
+                },
+                "copies": [
+                  {
+                    "destination": "build/Release/",
+                    "files": [
+                      "<!@(ls -1 ffmpeg/bin_armhf/libavcodec.so*)",
+                      "<!@(ls -1 ffmpeg/bin_armhf/libavutil.so*)",
+                      "<!@(ls -1 ffmpeg/bin_armhf/libswscale.so*)",
+                      "<!@(ls -1 ffmpeg/bin_armhf/libopenh264*.so*)",
+                      "<!@(ls -1 ffmpeg/bin_armhf/libvpx*.so*)"
+                    ]
+                  }
+                ]
+              },
               { # ia32 or x64
-                "cflags_cc!": [ 
+                "cflags_cc!": [
                   "-fno-rtti",
-                  "-fno-exceptions" 
+                  "-fno-exceptions"
                  ],
                  "cflags_cc": [
                    "-std=c++11",
@@ -111,7 +112,7 @@
             ]
           },
           "copies": [
-            { 
+            {
               "destination": "build/Release/",
               "files": [
                 "<!@(ls -1 ffmpeg/bin/libavcodec*.dylib)",
@@ -133,13 +134,13 @@
               }
             }
           },
-          "libraries": [ 
+          "libraries": [
             "-l../ffmpeg/bin/avcodec.lib",
             "-l../ffmpeg/bin/avutil.lib",
             "-l../ffmpeg/bin/swscale.lib"
           ],
           "copies": [
-            { 
+            {
               "destination": "build/Release/",
               "files": [
                 "ffmpeg/bin/avcodec-57.dll",

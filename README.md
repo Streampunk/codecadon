@@ -5,6 +5,8 @@ Codecadon is a [Node.js](http://nodejs.org/) [addon](http://nodejs.org/api/addon
 
 The implementation is designed to support the [dynamorse](http://github.com/Streampunk/dynamorse) project and currently provides packing, rescaling and encoding/decoding for h.264 and VP8, largely using [FFmpeg](http://www.ffmpeg.org/).
 
+Support has been added for building codecadon for the Raspberry Pi armhf platforms, although do not expect anything other than relatively poor performance at this stage.
+
 ## Installation
 
 Install [Node.js](http://nodejs.org/) for your platform. This software has been developed against the long term stable (LTS) release.
@@ -27,7 +29,7 @@ fn.on('exit', function() {
   fn.finish();
 });
 fn.on('error', function(err) {
-// handle error 
+// handle error
 });
 
 // start the processing thread
@@ -55,4 +57,4 @@ This software is released under the Apache 2.0 license. Copyright 2016 Streampun
 
 This software uses libraries from the FFmpeg project under the LGPLv3.
 
-Copies of the licenses pertaining to libraries used in this software can be found in the licences folder. 
+Copies of the licenses pertaining to libraries used in this software can be found in the licences folder.

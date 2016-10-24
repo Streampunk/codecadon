@@ -18,6 +18,7 @@
 
 #include <nan.h>
 #include <sstream>
+#include "Params.h"
 
 using namespace v8;
 
@@ -40,11 +41,11 @@ private:
   Duration(const Duration&);
 };
 
-class EssenceInfo {
+class EssenceInfo : public Params {
 public:
   EssenceInfo(Local<Object> tags)
-    : mFormat(unpackStr(tags, "format", "video")),
-      mIsVideo(0==mFormat.compare("video")),
+    : Params(0==unpackStr(tags, "format", "video").compare("video")),
+      mFormat(unpackStr(tags, "format", "video")),
       mEncodingName(unpackStr(tags, "encodingName", mIsVideo?"raw":"L16")), 
       mClockRate(unpackNum(tags, "clockRate", mIsVideo?90000:48000)),
       mWidth(mIsVideo?unpackNum(tags, "width", 1920):0),
@@ -59,7 +60,6 @@ public:
   ~EssenceInfo() {}
 
   std::string format() const  { return mFormat; }
-  bool isVideo() const  { return mIsVideo; }
   std::string encodingName() const  { return mEncodingName; }
   uint32_t clockRate() const  { return mClockRate; }
   uint32_t width() const  { return mWidth; }
@@ -82,7 +82,6 @@ public:
 
 private:
   std::string mFormat;
-  bool mIsVideo;
   std::string mEncodingName;
   uint32_t mClockRate;
   uint32_t mWidth;
@@ -93,37 +92,6 @@ private:
   std::string mInterlace;
   std::string mPacking;
   uint32_t mChannels;
-
-  std::string unpackValue(Local<Object> tags, const std::string& key) {
-    Local<String> keyStr = Nan::New<String>(key).ToLocalChecked();
-    if (!Nan::Has(tags, keyStr).FromJust())
-      return std::string();
-      
-    Local<Array> valueArray = Local<Array>::Cast(Nan::Get(tags, keyStr).ToLocalChecked());
-    return *String::Utf8Value(valueArray->Get(0));
-  }
-
-  bool unpackBool(Local<Object> tags, const std::string& key, bool dflt) {
-    std::string val = unpackValue(tags, key);
-    bool result = dflt;
-    if (!val.empty()) {
-      if ((0==val.compare("1")) || (0==val.compare("true")))
-        result = true;
-      else if ((0==val.compare("0")) || (0==val.compare("false")))
-        result = false;
-    }
-    return result;
-  }
-
-  uint32_t unpackNum(Local<Object> tags, const std::string& key, uint32_t dflt) {
-    std::string val = unpackValue(tags, key);
-    return val.empty()?dflt:std::stoi(val);
-  } 
-
-  std::string unpackStr(Local<Object> tags, const std::string& key, std::string dflt) {
-    std::string val = unpackValue(tags, key);
-    return val.empty()?dflt:val;
-  } 
 };
 
 } // namespace streampunk

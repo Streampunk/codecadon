@@ -19,6 +19,7 @@
 #include <memory>
 #include "EssenceInfo.h"
 #include "EncoderFF.h"
+#include "EncodeParams.h"
 
 namespace streampunk {
 
@@ -27,12 +28,12 @@ class Duration;
 class EncoderFactory {
 public:
   static std::shared_ptr<iEncoderDriver> createEncoder(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<EssenceInfo> dstInfo, 
-                                                       const Duration& duration, uint32_t bitrate, uint32_t gopFrames) {
+                                                       const Duration& duration, std::shared_ptr<EncodeParams> encodeParams) {
     if ((0 == dstInfo->packing().compare("AVCi50")) || (0 == dstInfo->packing().compare("AVCi100"))) {   
       throw std::runtime_error("No implementation of AVCi encoder available");
     }
     else {
-      return std::make_shared<EncoderFF>(srcInfo, dstInfo, duration, bitrate, gopFrames);
+      return std::make_shared<EncoderFF>(srcInfo, dstInfo, duration, encodeParams);
     }
   }
 };

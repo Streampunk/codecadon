@@ -175,7 +175,8 @@ encodeTest('Starting up an encoder',
     var dstHeight = 1080; 
     var srcTags = makeTags(1920, 1080, '420P', 'raw', 0);
     var dstTags = makeTags(dstWidth, dstHeight, 'h264', 'h264', 0);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
+    var encodeTags = {};
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
     var numBytesExpected = dstWidth * dstHeight;
     t.equal(dstBufLen, numBytesExpected, 'buffer size calculation matches the expected value');
     done();
@@ -194,9 +195,10 @@ encodeTest('Performing h264 encoding',
     var dstFormat = 'h264';
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
+    var encodeTags = {};
     var bufArray = new Array(1); 
     bufArray[0] = make420PBuf(srcWidth, srcHeight);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
     var dstBuf = new Buffer(dstBufLen);
     var numQueued = encoder.encode(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
@@ -218,9 +220,10 @@ encodeTest('Performing h264 encoding from a V210 source',
     var dstFormat = 'h264';
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
+    var encodeTags = {};
     var bufArray = new Array(1); 
     bufArray[0] = makeV210Buf(srcWidth, srcHeight);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
     var dstBuf = new Buffer(dstBufLen);
     var numQueued = encoder.encode(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
@@ -243,8 +246,9 @@ encodeTest('Performing AVCi encoding',
     var dstFormat = 'AVCi50';
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
+    var encodeTags = {};
     var bufArray = makeYUV422P10BufArray(srcWidth, srcHeight);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
     var dstBuf = new Buffer(dstBufLen);
     encoder.encode(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
@@ -267,7 +271,8 @@ encodeTest('Handling an undefined source buffer array',
     var dstFormat = 'h264';
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
+    var encodeTags = {};
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
     var bufArray;
     var dstBuf = new Buffer(dstBufLen);
     encoder.encode(bufArray, dstBuf, function(err, result) {
@@ -289,7 +294,8 @@ encodeTest('Handling an undefined destination buffer',
     var dstFormat = 'h264';
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration);
+    var encodeTags = {};
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
     var bufArray = new Array(1); 
     bufArray[0] = make420PBuf(srcWidth, srcHeight);
     var dstBuf;

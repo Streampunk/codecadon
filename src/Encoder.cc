@@ -21,6 +21,7 @@
 #include "Memory.h"
 #include "EncoderFactory.h"
 #include "EssenceInfo.h"
+#include "Persist.h"
 
 #include <memory>
 
@@ -35,16 +36,22 @@ uint32_t beToLe32 (uint32_t be) {
 
 class EncodeProcessData : public iProcessData {
 public:
-  EncodeProcessData (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, std::shared_ptr<Memory> convertDstBuf)
-    : mSrcBuf(srcBuf), mDstBuf(dstBuf), mConvertDstBuf(convertDstBuf)
+  EncodeProcessData (Local<Object> srcBufObj, Local<Object> dstBufObj, std::shared_ptr<Memory> convertDstBuf)
+    : mPersistentSrcBuf(Persist::makeNew(srcBufObj)),
+      mPersistentDstBuf(Persist::makeNew(dstBufObj)),
+      mSrcBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj))), 
+      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj))), 
+      mConvertDstBuf(convertDstBuf)
     { }
-  ~EncodeProcessData() { }
+  ~EncodeProcessData() {}
   
   std::shared_ptr<Memory> srcBuf() const { return mSrcBuf; }
   std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
   std::shared_ptr<Memory> convertDstBuf() const { return mConvertDstBuf; }
 
 private:
+  std::unique_ptr<Persist> mPersistentSrcBuf;
+  std::unique_ptr<Persist> mPersistentDstBuf;
   std::shared_ptr<Memory> mSrcBuf;
   std::shared_ptr<Memory> mDstBuf;
   std::shared_ptr<Memory> mConvertDstBuf;
@@ -71,58 +78,78 @@ uint32_t Encoder::processFrame (std::shared_ptr<iProcessData> processData) {
     printf("convert: %.2fms\n", t.delta());
   }
 
-  mEncoderDriver->encodeFrame (encodeSrcBuf, epd->dstBuf(), mFrameNum++, &dstBytes);
+  try {
+    mEncoderDriver->encodeFrame (encodeSrcBuf, epd->dstBuf(), mFrameNum++, &dstBytes);
+  } catch (std::exception& err) {
+    printf("Encode error: %s\n", err.what());
+  }
   printf("encode : %.2fms\n", t.delta());
 
   return dstBytes;
 }
 
 void Encoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, const Duration& duration,
-                        uint32_t bitrate, uint32_t gopFrames) {
-  mSrcVidInfo = std::make_shared<EssenceInfo>(srcTags); 
-  printf ("Encoder SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
-  mDstVidInfo = std::make_shared<EssenceInfo>(dstTags); 
-  printf("Encoder DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
+                        Local<Object> encodeTags) {
+  mSrcInfo = std::make_shared<EssenceInfo>(srcTags); 
+  printf ("Encoder SrcInfo: %s\n", mSrcInfo->toString().c_str());
+  mDstInfo = std::make_shared<EssenceInfo>(dstTags); 
+  printf("Encoder DstInfo: %s\n", mDstInfo->toString().c_str());
+  std::shared_ptr<EncodeParams> encodeParams = std::make_shared<EncodeParams>(encodeTags, mSrcInfo->isVideo()); 
+  printf("Encode Params: %s\n", encodeParams->toString().c_str());
 
-  if (mSrcVidInfo->packing().compare("420P") && mSrcVidInfo->packing().compare("YUV422P10") && 
-      mSrcVidInfo->packing().compare("pgroup") && mSrcVidInfo->packing().compare("v210")) {
-    std::string err = std::string("Unsupported source format \'") + mSrcVidInfo->packing().c_str() + "\'";
-    return Nan::ThrowError(err.c_str());
+  if (mSrcInfo->isVideo()) {
+    if (mSrcInfo->packing().compare("420P") && mSrcInfo->packing().compare("YUV422P10") && 
+        mSrcInfo->packing().compare("pgroup") && mSrcInfo->packing().compare("v210")) {
+      std::string err = std::string("Unsupported source format \'") + mSrcInfo->packing().c_str() + "\'";
+      return Nan::ThrowError(err.c_str());
+    }
+    if (mDstInfo->packing().compare("h264") && mDstInfo->packing().compare("vp8") && 
+        mDstInfo->packing().compare("AVCi50") && mDstInfo->packing().compare("AVCi100")) {
+      std::string err = std::string("Unsupported codec type \'") + mDstInfo->packing() + "\'";
+      Nan::ThrowError(err.c_str());
+      return;
+    }
+    if ((mSrcInfo->width() % 2) || (mDstInfo->width() % 2)) {
+      std::string err = std::string("Width must be divisible by 2 - src ") + std::to_string(mSrcInfo->width()) + ", dst " + std::to_string(mDstInfo->width());
+      Nan::ThrowError(err.c_str());
+    }
+    if ((mSrcInfo->width() != mDstInfo->width()) || (mSrcInfo->height() != mDstInfo->height())) {
+      std::string err = std::string("Unsupported dimensions \'") + std::to_string(mSrcInfo->width()) + "x" + std::to_string(mSrcInfo->height()) + "\'";
+      return Nan::ThrowError(err.c_str());
+    }
   }
-  if (mDstVidInfo->packing().compare("h264") && mDstVidInfo->packing().compare("vp8") && 
-      mDstVidInfo->packing().compare("AVCi50") && mDstVidInfo->packing().compare("AVCi100")) {
-    std::string err = std::string("Unsupported codec type \'") + mDstVidInfo->packing() + "\'";
-    Nan::ThrowError(err.c_str());
-    return;
-  }
-  if ((mSrcVidInfo->width() % 2) || (mDstVidInfo->width() % 2)) {
-    std::string err = std::string("Width must be divisible by 2 - src ") + std::to_string(mSrcVidInfo->width()) + ", dst " + std::to_string(mDstVidInfo->width());
-    Nan::ThrowError(err.c_str());
-  }
-  if ((mSrcVidInfo->width() != mDstVidInfo->width()) || (mSrcVidInfo->height() != mDstVidInfo->height())) {
-    std::string err = std::string("Unsupported dimensions \'") + std::to_string(mSrcVidInfo->width()) + "x" + std::to_string(mSrcVidInfo->height()) + "\'";
-    return Nan::ThrowError(err.c_str());
+  else {
+    if (mDstInfo->encodingName().compare("AAC")) {
+      std::string err = std::string("Unsupported audio codec type \'") + mDstInfo->encodingName() + "\'";
+      Nan::ThrowError(err.c_str());
+      return;
+    }
   }
 
   try {
-    mEncoderDriver = EncoderFactory::createEncoder(mSrcVidInfo, mDstVidInfo, duration, bitrate, gopFrames);
+    mEncoderDriver = EncoderFactory::createEncoder(mSrcInfo, mDstInfo, duration, encodeParams);
   } catch (std::exception& err) {
     return Nan::ThrowError(err.what());
   }
-  if (mEncoderDriver->packingRequired().compare(mSrcVidInfo->packing()))
-    mPacker = std::make_shared<Packers>(mSrcVidInfo->width(), mSrcVidInfo->height(), mSrcVidInfo->packing(), mEncoderDriver->packingRequired());
+  if (mSrcInfo->isVideo() && mEncoderDriver->packingRequired().compare(mSrcInfo->packing()))
+    mPacker = std::make_shared<Packers>(mSrcInfo->width(), mSrcInfo->height(), mSrcInfo->packing(), mEncoderDriver->packingRequired());
 }
 
 NAN_METHOD(Encoder::SetInfo) {
-  if (info.Length() != 5)
-    return Nan::ThrowError("Encoder SetInfo expects 5 arguments");
+  if (info.Length() != 4)
+    return Nan::ThrowError("Encoder SetInfo expects 4 arguments");
+  if (!info[0]->IsObject())
+    return Nan::ThrowError("Encoder SetInfo requires a valid source info object as the first parameter");
+  if (!info[1]->IsObject())
+    return Nan::ThrowError("Encoder SetInfo requires a valid destination info object as the second parameter");
   if (!info[2]->IsObject())
     return Nan::ThrowError("Encoder SetInfo requires a valid duration buffer as the third parameter");
+  if (!info[3]->IsObject())
+    return Nan::ThrowError("Encoder SetInfo requires a valid params object as the fourth parameter");
   Local<Object> srcTags = Local<Object>::Cast(info[0]);
   Local<Object> dstTags = Local<Object>::Cast(info[1]);
   Local<Object> durObj = Local<Object>::Cast(info[2]);
-  uint32_t bitrate = Nan::To<uint32_t>(info[3]).FromJust();
-  uint32_t gopFrames = Nan::To<uint32_t>(info[4]).FromJust();
+  Local<Object> encodeTags = Local<Object>::Cast(info[3]);
 
   Encoder* obj = Nan::ObjectWrap::Unwrap<Encoder>(info.Holder());
 
@@ -132,7 +159,7 @@ NAN_METHOD(Encoder::SetInfo) {
   Duration duration(durNum, durDen);
 
   Nan::TryCatch try_catch;
-  obj->doSetInfo(srcTags, dstTags, duration, bitrate, gopFrames);
+  obj->doSetInfo(srcTags, dstTags, duration, encodeTags);
   if (try_catch.HasCaught()) {
     obj->mSetInfoOK = false;
     try_catch.ReThrow();
@@ -167,13 +194,10 @@ NAN_METHOD(Encoder::Encode) {
     return Nan::ThrowError(err.c_str());
   }
   Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(0));
-
-  std::shared_ptr<Memory> srcBuf = Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj));
-  std::shared_ptr<Memory> dstBuf = Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj));
   std::shared_ptr<Memory> convertDstBuf;
   if (obj->mPacker)
-    convertDstBuf = Memory::makeNew(getFormatBytes(obj->mEncoderDriver->packingRequired(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height()));
-  std::shared_ptr<iProcessData> epd = std::make_shared<EncodeProcessData>(srcBuf, dstBuf, convertDstBuf);
+    convertDstBuf = Memory::makeNew(getFormatBytes(obj->mEncoderDriver->packingRequired(), obj->mSrcInfo->width(), obj->mSrcInfo->height()));
+  std::shared_ptr<iProcessData> epd = std::make_shared<EncodeProcessData>(srcBufObj, dstBufObj, convertDstBuf);
   obj->mWorker->doFrame(epd, obj, new Nan::Callback(callback));
 
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));

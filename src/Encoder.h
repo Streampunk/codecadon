@@ -39,7 +39,7 @@ private:
   ~Encoder();
 
   void doSetInfo(v8::Local<v8::Object> srcTags, v8::Local<v8::Object> dstTags, const Duration& duration,
-                 uint32_t bitrate, uint32_t gopFrames);
+                 v8::Local<v8::Object> encodeTags);
 
   static NAN_METHOD(New) {
     if (info.IsConstructCall()) {
@@ -69,8 +69,8 @@ private:
   MyWorker *mWorker;
   uint32_t mFrameNum;
   bool mSetInfoOK;
-  std::shared_ptr<EssenceInfo> mSrcVidInfo;
-  std::shared_ptr<EssenceInfo> mDstVidInfo;
+  std::shared_ptr<EssenceInfo> mSrcInfo;
+  std::shared_ptr<EssenceInfo> mDstInfo;
   std::shared_ptr<Packers> mPacker;
   std::shared_ptr<iEncoderDriver> mEncoderDriver;
 };

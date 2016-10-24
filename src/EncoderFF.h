@@ -28,28 +28,30 @@ namespace streampunk {
 class Memory;
 class Duration;
 class EssenceInfo;
+class EncodeParams;
 class EncoderFF : public iEncoderDriver {
 public:
   EncoderFF(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<EssenceInfo> dstInfo, const Duration& duration,
-            uint32_t bitrate, uint32_t gopFrames);
+            std::shared_ptr<EncodeParams> encodeParams);
   ~EncoderFF();
 
-  uint32_t bytesReq() const;
+  uint32_t bytesReq() const  { return mBytesReq; }
   std::string packingRequired() const;
-  uint32_t width() const { return mWidth; }
-  uint32_t height() const { return mHeight; }
-  uint32_t pixFmt() const { return mPixFmt; }
-  
+
   void encodeFrame (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, uint32_t *pDstBytes);
 
 private:
+  const bool mIsVideo;
   std::string mEncoding; 
-  const uint32_t mWidth;
-  const uint32_t mHeight;
-  const uint32_t mPixFmt;
+  uint32_t mBytesReq;
   AVCodec *mCodec;
   AVCodecContext *mContext;
   AVFrame *mFrame;
+  uint32_t mFreqCode;
+  uint32_t mBitsPerSample;
+
+  void encodeVideo(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, uint32_t *pDstBytes);
+  void encodeAudio(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, uint32_t *pDstBytes);
 };
 
 

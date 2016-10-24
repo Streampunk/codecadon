@@ -16,7 +16,7 @@
 'use strict';
 var codecAdon = require('bindings')('./Release/codecadon');
 
-//var SegfaultHandler = require('../node-segfault-handler');
+//var SegfaultHandler = require('../../node-segfault-handler');
 //SegfaultHandler.registerHandler("crash.log");
 
 const util = require('util');
@@ -185,17 +185,9 @@ function Encoder (cb) {
 
 util.inherits(Encoder, EventEmitter);
 
-Encoder.prototype.setInfo = function(srcTags, dstTags, duration, bitrate, gopframes) {
-  var encodeBitrate = 5000000;
-  if (typeof arguments[3] === 'number')
-    encodeBitrate = arguments[3];
-
-  var encodeGopFrames = 10 * 60;
-  if (typeof arguments[4] === 'number')
-    encodeGopFrames = arguments[4];
-
+Encoder.prototype.setInfo = function(srcTags, dstTags, duration, encodeTags) {
   try {
-    return this.encoderAdon.setInfo(srcTags, dstTags, duration, encodeBitrate, encodeGopFrames);
+    return this.encoderAdon.setInfo(srcTags, dstTags, duration, encodeTags);
   } catch (err) {
     this.emit('error', err);
     return 0;

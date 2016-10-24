@@ -22,10 +22,6 @@ namespace streampunk {
 
 class Persist {
 public:
-  static std::unique_ptr<Persist> makeNew(Local<Object> object) {
-    return std::make_unique<Persist>(object);
-  }
-
   Persist(Local<Object> object) 
     : mPersistObj(object) {}
   ~Persist() { mPersistObj.Reset(); }

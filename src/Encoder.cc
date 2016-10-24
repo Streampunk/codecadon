@@ -37,8 +37,8 @@ uint32_t beToLe32 (uint32_t be) {
 class EncodeProcessData : public iProcessData {
 public:
   EncodeProcessData (Local<Object> srcBufObj, Local<Object> dstBufObj, std::shared_ptr<Memory> convertDstBuf)
-    : mPersistentSrcBuf(Persist::makeNew(srcBufObj)),
-      mPersistentDstBuf(Persist::makeNew(dstBufObj)),
+    : mPersistentSrcBuf(new Persist(srcBufObj)),
+      mPersistentDstBuf(new Persist(dstBufObj)),
       mSrcBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj))), 
       mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj))), 
       mConvertDstBuf(convertDstBuf)

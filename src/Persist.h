@@ -16,6 +16,8 @@
 #ifndef PERSIST_H
 #define PERSIST_H
 
+#include <memory>
+
 namespace streampunk {
 
 class Persist {

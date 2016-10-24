@@ -203,20 +203,9 @@ void EncoderFF::encodeAudio(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memo
 
   // convert from S16/S20/S24 format to FLTP
   uint8_t *buf = srcBuf->buf();
-  uint32_t numSrcBytes = srcBuf->numBytes();
   uint32_t numSamples = mFrame->nb_samples;
   uint32_t numChannels = mContext->channels;
   uint32_t bytesPerSample = (mBitsPerSample+7)/8;
-  uint32_t expectedBytes = numSamples * numChannels * bytesPerSample; 
-  std::string str = std::string("srcBytes ") + std::to_string(numSrcBytes) + ", " + 
-    std::to_string(expectedBytes) + ", " + std::to_string(numSamples) + ", " + 
-    std::to_string(numChannels) + ", " + std::to_string(bytesPerSample) + "\n"; 
-  if (numSrcBytes < numSamples * numChannels * bytesPerSample) {
-    std::string err = std::string("EncoderFF - insufficient source buffer ") + str;
-    throw std::runtime_error(err.c_str());
-  }
-  else
-    printf(str.c_str());
 
   float maxValue = powf(2.0f, float(mBitsPerSample - 1)) - 1.0f;
   for (uint32_t i = 0; i < numSamples; ++i) {

@@ -20,6 +20,7 @@
 #include "Packers.h"
 #include "Memory.h"
 #include "EssenceInfo.h"
+#include "Persist.h"
 
 #include <memory>
 
@@ -29,8 +30,11 @@ namespace streampunk {
 
 class PackerProcessData : public iProcessData {
 public:
-  PackerProcessData (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf)
-    : mSrcBuf(srcBuf), mDstBuf(dstBuf)
+  PackerProcessData (Local<Object> srcBufObj, Local<Object> dstBufObj)
+    : mPersistentSrcBuf(new Persist(srcBufObj)),
+      mPersistentDstBuf(new Persist(dstBufObj)),
+      mSrcBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj))),
+      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj)))
   { }
   ~PackerProcessData() { }
   
@@ -38,6 +42,8 @@ public:
   std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
 
 private:
+  std::unique_ptr<Persist> mPersistentSrcBuf;
+  std::unique_ptr<Persist> mPersistentDstBuf;
   std::shared_ptr<Memory> mSrcBuf;
   std::shared_ptr<Memory> mDstBuf;
 };
@@ -138,11 +144,8 @@ NAN_METHOD(Packer::Pack) {
   if (obj->mDstBytesReq > node::Buffer::Length(dstBufObj))
     return Nan::ThrowError("Insufficient destination buffer for specified format");
 
-  std::shared_ptr<Memory> srcBuf = Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj));
-  std::shared_ptr<Memory> dstBuf = Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj));
-
   std::shared_ptr<iProcessData> ppd = 
-    std::make_shared<PackerProcessData>(srcBuf, dstBuf);
+    std::make_shared<PackerProcessData>(srcBufObj, dstBufObj);
   obj->mWorker->doFrame(ppd, obj, new Nan::Callback(callback));
 
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));

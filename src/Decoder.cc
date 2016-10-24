@@ -20,6 +20,7 @@
 #include "Memory.h"
 #include "DecoderFactory.h"
 #include "EssenceInfo.h"
+#include "Persist.h"
 
 #include <memory>
 
@@ -29,9 +30,11 @@ namespace streampunk {
 
 class DecodeProcessData : public iProcessData {
 public:
-  DecodeProcessData (Local<Object> srcBuf, Local<Object> dstBuf)
-    : mSrcBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBuf), (uint32_t)node::Buffer::Length(srcBuf))),
-      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBuf), (uint32_t)node::Buffer::Length(dstBuf)))
+  DecodeProcessData (Local<Object> srcBufObj, Local<Object> dstBufObj)
+    : mPersistentSrcBuf(new Persist(srcBufObj)),
+      mPersistentDstBuf(new Persist(dstBufObj)),
+      mSrcBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj))),
+      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj)))
     { }
   ~DecodeProcessData() { }
   
@@ -39,6 +42,8 @@ public:
   std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
 
 private:
+  std::unique_ptr<Persist> mPersistentSrcBuf;
+  std::unique_ptr<Persist> mPersistentDstBuf;
   std::shared_ptr<Memory> mSrcBuf;
   std::shared_ptr<Memory> mDstBuf;
 };

@@ -21,6 +21,7 @@
 #include "EssenceInfo.h"
 #include "Packers.h"
 #include "Primitives.h"
+#include "Persist.h"
 
 #include <memory>
 
@@ -30,8 +31,10 @@ namespace streampunk {
 
 class WipeProcessData : public iProcessData {
 public:
-  WipeProcessData (std::shared_ptr<Memory> dstBuf, const iRect &wipeRect, const fCol &wipeCol)
-    : mDstBuf(dstBuf), mWipeRect(wipeRect), mWipeCol(wipeCol)
+  WipeProcessData (Local<Object> dstBufObj, const iRect &wipeRect, const fCol &wipeCol)
+    : mPersistentDstBuf(new Persist(dstBufObj)),
+      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj))),
+      mWipeRect(wipeRect), mWipeCol(wipeCol)
   { }
   ~WipeProcessData() { }
   
@@ -40,6 +43,7 @@ public:
   fCol wipeCol() const { return mWipeCol; }
 
 private:
+  std::unique_ptr<Persist> mPersistentDstBuf;
   std::shared_ptr<Memory> mDstBuf;
   iRect mWipeRect;
   fCol mWipeCol;
@@ -47,8 +51,12 @@ private:
 
 class CopyProcessData : public iProcessData {
 public:
-  CopyProcessData (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, const iXY &dstOrg)
-    : mSrcBuf(srcBuf), mDstBuf(dstBuf), mDstOrg(dstOrg)
+  CopyProcessData (Local<Object> srcBufObj, Local<Object> dstBufObj, const iXY &dstOrg)
+    : mPersistentSrcBuf(new Persist(srcBufObj)),
+      mPersistentDstBuf(new Persist(dstBufObj)),
+      mSrcBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj))),
+      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj))),
+      mDstOrg(dstOrg)
   { }
   ~CopyProcessData() { }
   
@@ -57,6 +65,8 @@ public:
   iXY dstOrg() const { return mDstOrg; }
 
 private:
+  std::unique_ptr<Persist> mPersistentSrcBuf;
+  std::unique_ptr<Persist> mPersistentDstBuf;
   std::shared_ptr<Memory> mSrcBuf;
   std::shared_ptr<Memory> mDstBuf;
   iXY mDstOrg;
@@ -267,8 +277,6 @@ NAN_METHOD(Stamper::Wipe) {
   if (obj->mDstBytesReq > node::Buffer::Length(dstBufObj))
     return Nan::ThrowError("Insufficient destination buffer for specified format");
 
-  std::shared_ptr<Memory> dstBuf = Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj));
-
   Local<String> wipeRectStr = Nan::New<String>("wipeRect").ToLocalChecked();
   Local<Array> wipeRectArr = Local<Array>::Cast(Nan::Get(paramTags, wipeRectStr).ToLocalChecked());
   if (!(!wipeRectArr->IsNull() && wipeRectArr->IsArray() && (wipeRectArr->Length() == 4)))
@@ -286,7 +294,7 @@ NAN_METHOD(Stamper::Wipe) {
                Nan::To<double>(wipeColArr->Get(2)).FromJust());
 
   std::shared_ptr<iProcessData> wpd = 
-    std::make_shared<WipeProcessData>(dstBuf, wipeRect, wipeCol);
+    std::make_shared<WipeProcessData>(dstBufObj, wipeRect, wipeCol);
   obj->mWorker->doFrame(wpd, obj, new Nan::Callback(callback));
 
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));
@@ -323,9 +331,6 @@ NAN_METHOD(Stamper::Copy) {
   if (obj->mDstBytesReq > node::Buffer::Length(dstBufObj))
     return Nan::ThrowError("Insufficient destination buffer for specified format");
 
-  std::shared_ptr<Memory> srcBuf = Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj));
-  std::shared_ptr<Memory> dstBuf = Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj));
-
   Local<String> dstOrgStr = Nan::New<String>("dstOrg").ToLocalChecked();
   Local<Array> dstOrgXY = Local<Array>::Cast(Nan::Get(paramTags, dstOrgStr).ToLocalChecked());
   if (!(!dstOrgXY->IsNull() && dstOrgXY->IsArray() && (dstOrgXY->Length() == 2)))
@@ -333,7 +338,7 @@ NAN_METHOD(Stamper::Copy) {
   iXY dstOrg(Nan::To<uint32_t>(dstOrgXY->Get(0)).FromJust(), Nan::To<uint32_t>(dstOrgXY->Get(1)).FromJust());
 
   std::shared_ptr<iProcessData> cpd = 
-    std::make_shared<CopyProcessData>(srcBuf, dstBuf, dstOrg);
+    std::make_shared<CopyProcessData>(srcBufObj, dstBufObj, dstOrg);
   obj->mWorker->doFrame(cpd, obj, new Nan::Callback(callback));
 
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));

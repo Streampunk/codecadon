@@ -20,6 +20,7 @@
 #include "Packers.h"
 #include "Memory.h"
 #include "EssenceInfo.h"
+#include "Persist.h"
 
 #include <memory>
 
@@ -30,7 +31,8 @@ namespace streampunk {
 class ConcatProcessData : public iProcessData {
 public:
   ConcatProcessData (Local<Array> srcBufArray, Local<Object> dstBuf)
-    : mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBuf), (uint32_t)node::Buffer::Length(dstBuf))), mSrcBytes(0) {
+    : mPersistentSrcBuf(new Persist(srcBufArray)), mPersistentDstBuf(new Persist(dstBuf)),
+      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBuf), (uint32_t)node::Buffer::Length(dstBuf))), mSrcBytes(0) {
     for (uint32_t i = 0; i < srcBufArray->Length(); ++i) {
       Local<Object> bufferObj = Local<Object>::Cast(srcBufArray->Get(i));
       uint32_t bufLen = (uint32_t)node::Buffer::Length(bufferObj);
@@ -45,6 +47,8 @@ public:
   uint32_t srcBytes() const { return mSrcBytes; }
 
 private:
+  std::unique_ptr<Persist> mPersistentSrcBuf;
+  std::unique_ptr<Persist> mPersistentDstBuf;
   tBufVec mSrcBufVec;
   std::shared_ptr<Memory> mDstBuf;
   uint32_t mSrcBytes;

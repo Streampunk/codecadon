@@ -22,6 +22,7 @@
 #include "Primitives.h"
 #include "ScaleConverterFF.h"
 #include "EssenceInfo.h"
+#include "Persist.h"
 
 #include <memory>
 
@@ -31,9 +32,13 @@ namespace streampunk {
 
 class ScaleConvertProcessData : public iProcessData {
 public:
-  ScaleConvertProcessData (std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, 
+  ScaleConvertProcessData (Local<Object> srcBufObj, Local<Object> dstBufObj, 
                            std::shared_ptr<Memory> convertDstBuf, std::shared_ptr<Memory> scaleSrcBuf)
-    : mSrcBuf(srcBuf), mDstBuf(dstBuf), mConvertDstBuf(convertDstBuf), mScaleSrcBuf(scaleSrcBuf)
+    : mPersistentSrcBuf(new Persist(srcBufObj)),
+      mPersistentDstBuf(new Persist(dstBufObj)),
+      mSrcBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj))),
+      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj))),
+      mConvertDstBuf(convertDstBuf), mScaleSrcBuf(scaleSrcBuf)
   { }
   ~ScaleConvertProcessData() { }
   
@@ -43,6 +48,8 @@ public:
   std::shared_ptr<Memory> scaleSrcBuf() const { return mScaleSrcBuf; }
 
 private:
+  std::unique_ptr<Persist> mPersistentSrcBuf;
+  std::unique_ptr<Persist> mPersistentDstBuf;
   std::shared_ptr<Memory> mSrcBuf;
   std::shared_ptr<Memory> mDstBuf;
   std::shared_ptr<Memory> mConvertDstBuf;
@@ -191,7 +198,7 @@ NAN_METHOD(ScaleConverter::ScaleConvert) {
   }
 
   std::shared_ptr<iProcessData> scpd = 
-    std::make_shared<ScaleConvertProcessData>(srcBuf, dstBuf, convertDstBuf, scaleSrcBuf);
+    std::make_shared<ScaleConvertProcessData>(srcBufObj, dstBufObj, convertDstBuf, scaleSrcBuf);
   obj->mWorker->doFrame(scpd, obj, new Nan::Callback(callback));
 
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));

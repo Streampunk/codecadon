@@ -52,11 +52,32 @@ void fillAdtsHeader(uint8_t *buf, uint32_t freqCode, uint32_t chanCode, uint32_t
   buf[6] = 0xFC;
 }
 
+bool checkGopStart(uint8_t *encBuf) {
+  bool result = false;
+  uint32_t startCode = 0x01000000;
+  uint8_t *const encPtr = encBuf;
+  uint8_t *bufPtr = encBuf;
+  while (bufPtr - encPtr < 48) {
+    if (0==memcmp(bufPtr, &startCode, 4)) {
+      if (0x1 == (bufPtr[4] & 0x1F)) // pframe
+        break;
+      else if (0x5 == (bufPtr[4] & 0x1F)) { // iframe
+        result = true;
+        break;
+      }
+      bufPtr += 4;
+    }
+    else
+      ++bufPtr;
+  }
+
+  return result;
+}
 
 EncoderFF::EncoderFF(std::shared_ptr<EssenceInfo> srcInfo, std::shared_ptr<EssenceInfo> dstInfo, const Duration& duration,
                      std::shared_ptr<EncodeParams> encodeParams)
   : mIsVideo(srcInfo->isVideo()), mEncoding(dstInfo->encodingName()), mBytesReq(0),
-    mCodec(NULL), mContext(NULL), mFrame(NULL), mFreqCode(3), mBitsPerSample(16) {
+    mCodec(NULL), mContext(NULL), mFrame(NULL), mFreqCode(3), mBitsPerSample(16), mGopBuf_HWM(0) {
 
   avcodec_register_all();
   av_log_set_level(AV_LOG_INFO);
@@ -173,12 +194,29 @@ void EncoderFF::encodeVideo(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memo
 
   AVPacket pkt;
   av_init_packet(&pkt);
-  pkt.data = dstBuf->buf();
-  pkt.size = bytesReq();
+  pkt.data = NULL;
+  pkt.size = 0;
 
   int got_output;
   avcodec_encode_video2(mContext, &pkt, mFrame, &got_output);
   *pDstBytes = got_output ? pkt.size : 0;
+
+  if (got_output && (0==mEncoding.compare("h264"))) {
+    *pDstBytes = 0;
+    if (checkGopStart(pkt.data)) {
+      *pDstBytes = mGopBuf_HWM;
+      if (mGopBuf) // copy previous full gop into current dstBuf
+        memcpy(dstBuf->buf(), mGopBuf->buf(), mGopBuf_HWM);
+
+      // copy this encode result into new buffer
+      mGopBuf = Memory::makeNew(mBytesReq);
+      memcpy(mGopBuf->buf(), pkt.data, pkt.size);
+      mGopBuf_HWM = pkt.size;
+    } else if (mGopBuf) {
+      memcpy(mGopBuf->buf() + mGopBuf_HWM, pkt.data, pkt.size);
+      mGopBuf_HWM += pkt.size;
+    }
+  }
 
   av_packet_unref(&pkt);
   av_frame_unref(mFrame);

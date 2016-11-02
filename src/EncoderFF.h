@@ -49,6 +49,8 @@ private:
   AVFrame *mFrame;
   uint32_t mFreqCode;
   uint32_t mBitsPerSample;
+  std::shared_ptr<Memory> mGopBuf;
+  uint32_t mGopBuf_HWM;
 
   void encodeVideo(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, uint32_t *pDstBytes);
   void encodeAudio(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memory> dstBuf, uint32_t frameNum, uint32_t *pDstBytes);

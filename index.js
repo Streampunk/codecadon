@@ -1,4 +1,4 @@
-/* Copyright 2016 Streampunk Media Ltd.
+/* Copyright 2017 Streampunk Media Ltd.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ Concater.prototype.setInfo = function(srcTags) {
 
 Concater.prototype.concat = function(srcBufArray, dstBuf, cb) {
   try {
-    var numQueued = this.concaterAdon.concat(srcBufArray, dstBuf, function(err, resultBytes) {
+    var numQueued = this.concaterAdon.concat(srcBufArray, dstBuf, (err, resultBytes) => {
       cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
@@ -51,7 +51,7 @@ Concater.prototype.concat = function(srcBufArray, dstBuf, cb) {
 
 Concater.prototype.quit = function(cb) {
   try {
-    this.concaterAdon.quit(function(err, resultBytes) {
+    this.concaterAdon.quit((err, resultBytes) => {
       cb(err, resultBytes);
     });
   } catch (err) {
@@ -78,7 +78,7 @@ Packer.prototype.setInfo = function(srcTags, dstTags) {
 
 Packer.prototype.pack = function(srcBufArray, dstBuf, cb) {
   try {
-    var numQueued = this.packerAdon.pack(srcBufArray, dstBuf, function(err, resultBytes) {
+    var numQueued = this.packerAdon.pack(srcBufArray, dstBuf, (err, resultBytes) => {
       cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
@@ -89,7 +89,7 @@ Packer.prototype.pack = function(srcBufArray, dstBuf, cb) {
 
 Packer.prototype.quit = function(cb) {
   try {
-    this.packerAdon.quit(function(err, resultBytes) {
+    this.packerAdon.quit((err, resultBytes) => {
       cb(err, resultBytes);
     });
   } catch (err) {
@@ -120,7 +120,7 @@ ScaleConverter.prototype.setInfo = function(srcTags, dstTags, scaleTags) {
 
 ScaleConverter.prototype.scaleConvert = function(srcBufArray, dstBuf, cb) {
   try {
-    var numQueued = this.scaleConverterAdon.scaleConvert(srcBufArray, dstBuf, function(err, resultBytes) {
+    var numQueued = this.scaleConverterAdon.scaleConvert(srcBufArray, dstBuf, (err, resultBytes) => {
       cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
@@ -131,7 +131,7 @@ ScaleConverter.prototype.scaleConvert = function(srcBufArray, dstBuf, cb) {
 
 ScaleConverter.prototype.quit = function(cb) {
   try {
-    this.scaleConverterAdon.quit(function(err, resultBytes) {
+    this.scaleConverterAdon.quit((err, resultBytes) => {
       cb(err, resultBytes);
     });
   } catch (err) {
@@ -158,7 +158,7 @@ Decoder.prototype.setInfo = function(srcTags, dstTags) {
 
 Decoder.prototype.decode = function(srcBufArray, dstBuf, cb) {
   try {
-    var numQueued = this.decoderAdon.decode(srcBufArray, dstBuf, function(err, resultBytes) {
+    var numQueued = this.decoderAdon.decode(srcBufArray, dstBuf, (err, resultBytes) => {
       cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
@@ -169,7 +169,7 @@ Decoder.prototype.decode = function(srcBufArray, dstBuf, cb) {
 
 Decoder.prototype.quit = function(cb) {
   try {
-    this.decoderAdon.quit(function(err, resultBytes) {
+    this.decoderAdon.quit((err, resultBytes) => {
       cb(err, resultBytes);
     });
   } catch (err) {
@@ -196,7 +196,7 @@ Encoder.prototype.setInfo = function(srcTags, dstTags, duration, encodeTags) {
 
 Encoder.prototype.encode = function(srcBufArray, dstBuf, cb) {
   try {
-    var numQueued = this.encoderAdon.encode(srcBufArray, dstBuf, function(err, resultBytes) {
+    var numQueued = this.encoderAdon.encode(srcBufArray, dstBuf, (err, resultBytes) => {
       cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
@@ -207,7 +207,7 @@ Encoder.prototype.encode = function(srcBufArray, dstBuf, cb) {
 
 Encoder.prototype.quit = function(cb) {
   try {
-    this.encoderAdon.quit(function(err, resultBytes) {
+    this.encoderAdon.quit((err, resultBytes) => {
       cb(err, resultBytes);
     });
   } catch (err) {
@@ -234,7 +234,7 @@ Stamper.prototype.setInfo = function(srcTags, dstTags) {
 
 Stamper.prototype.wipe = function(dstBuf, paramTags, cb) {
   try {
-    var numQueued = this.stamperAdon.wipe(dstBuf, paramTags, function(err, resultBytes) {
+    var numQueued = this.stamperAdon.wipe(dstBuf, paramTags, (err, resultBytes) => {
       cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
@@ -245,7 +245,7 @@ Stamper.prototype.wipe = function(dstBuf, paramTags, cb) {
 
 Stamper.prototype.copy = function(srcBufArray, dstBuf, paramTags, cb) {
   try {
-    var numQueued = this.stamperAdon.copy(srcBufArray, dstBuf, paramTags, function(err, resultBytes) {
+    var numQueued = this.stamperAdon.copy(srcBufArray, dstBuf, paramTags, (err, resultBytes) => {
       cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;
@@ -256,7 +256,7 @@ Stamper.prototype.copy = function(srcBufArray, dstBuf, paramTags, cb) {
 
 Stamper.prototype.quit = function(cb) {
   try {
-    this.stamperAdon.quit(function(err, resultBytes) {
+    this.stamperAdon.quit((err, resultBytes) => {
       cb(err, resultBytes);
     });
   } catch (err) {

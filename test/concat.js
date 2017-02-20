@@ -1,4 +1,4 @@
-/* Copyright 2016 Streampunk Media Ltd.
+/* Copyright 2017 Streampunk Media Ltd.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ function makeBufArray(bytesPerBuf, numBuffers) {
   var a = new Array(numBuffers);
   var c = 0;
   for (var b=0; b<numBuffers; ++b) {
-    var buf = new Buffer(bytesPerBuf);
+    var buf = Buffer.alloc(bytesPerBuf);
     for (var i=0; i<bytesPerBuf; ++i) {
       buf[i] = (c++)&0xff;
     }
@@ -60,7 +60,7 @@ concatTest('Performing concatenation', function (t, concater, done) {
   var tags = makeTags(width, height);
   var numBytes = concater.setInfo(tags);
   var bufArray = makeBufArray(numBytes / numBuffers, numBuffers);
-  var dstBuf = new Buffer(numBytes);
+  var dstBuf = Buffer.alloc(numBytes);
   concater.concat(bufArray, dstBuf, function(err, result) {
     t.notOk(err, 'no error expected');
     var testDstBuf = makeBufArray(numBytes, 1)[0];
@@ -75,7 +75,7 @@ concatTest('Handling an undefined source buffer array', function (t, concater, d
   var tags = makeTags(width, height);
   var numBytes = concater.setInfo(tags);
   var bufArray;
-  var dstBuf = new Buffer(numBytes);
+  var dstBuf = Buffer.alloc(numBytes);
   concater.concat(bufArray, dstBuf, function(err, result) {
     t.ok(err, 'should return error');
     done();
@@ -103,7 +103,7 @@ concatTest('Handling source buffer array bytes being greater than destination by
   var tags = makeTags(width, height);
   var numBytes = concater.setInfo(tags);
   var bufArray = makeBufArray(numBytes, numBuffers + 10);
-  var dstBuf = new Buffer(numBytes);
+  var dstBuf = Buffer.alloc(numBytes);
   concater.concat(bufArray, dstBuf, function(err, result) {
     t.ok(err, 'should return error');
     done();

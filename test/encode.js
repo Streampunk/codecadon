@@ -1,4 +1,4 @@
-/* Copyright 2016 Streampunk Media Ltd.
+/* Copyright 2017 Streampunk Media Ltd.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ var codecadon = require('../../codecadon');
 function make420PBuf(width, height) {
   var lumaPitchBytes = width;
   var chromaPitchBytes = lumaPitchBytes / 2;
-  var buf = new Buffer(lumaPitchBytes * height * 3 / 2);  
+  var buf = Buffer.alloc(lumaPitchBytes * height * 3 / 2);  
   var lOff = 0;
   var uOff = lumaPitchBytes * height;
   var vOff = uOff + chromaPitchBytes * height / 2;
@@ -51,7 +51,7 @@ function makeYUV422P10BufArray(width, height) {
   var a = new Array(1);
   var lumaPitchBytes = width * 2;
   var chromaPitchBytes = width;
-  var buf = new Buffer(lumaPitchBytes * height * 2);  
+  var buf = Buffer.alloc(lumaPitchBytes * height * 2);  
   var yOff = 0;
   var uOff = lumaPitchBytes * height;
   var vOff = uOff + chromaPitchBytes * height;
@@ -77,7 +77,7 @@ function makeYUV422P10BufArray(width, height) {
 
 function makeV210Buf(width, height) {
   var pitchBytes = (width + (47 - (width - 1) % 48)) * 8 / 3;
-  var buf = new Buffer(pitchBytes * height);
+  var buf = Buffer.alloc(pitchBytes * height);
   buf.fill(0);
   var yOff = 0;
   for (var y=0; y<height; ++y) {
@@ -117,7 +117,7 @@ function makeTags(width, height, packing, encodingName, interlace) {
 }
 
 
-var duration = new Buffer(8);
+var duration = Buffer.alloc(8);
 duration.writeUIntBE(1, 0, 4);
 duration.writeUIntBE(25, 4, 4);
 
@@ -199,7 +199,7 @@ encodeTest('Performing h264 encoding',
     var bufArray = new Array(1); 
     bufArray[0] = make420PBuf(srcWidth, srcHeight);
     var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     var numQueued = encoder.encode(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       // todo: check for valid bitstream...
@@ -224,7 +224,7 @@ encodeTest('Performing h264 encoding from a V210 source',
     var bufArray = new Array(1); 
     bufArray[0] = makeV210Buf(srcWidth, srcHeight);
     var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     var numQueued = encoder.encode(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       // todo: check for valid bitstream...
@@ -249,7 +249,7 @@ encodeTest('Performing AVCi encoding',
     var encodeTags = {};
     var bufArray = makeYUV422P10BufArray(srcWidth, srcHeight);
     var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     encoder.encode(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       // todo: check for valid bitstream...
@@ -274,7 +274,7 @@ encodeTest('Handling an undefined source buffer array',
     var encodeTags = {};
     var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
     var bufArray;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     encoder.encode(bufArray, dstBuf, function(err, result) {
       t.ok(err, 'should return error');
       done();

@@ -1,4 +1,4 @@
-/* Copyright 2016 Streampunk Media Ltd.
+/* Copyright 2017 Streampunk Media Ltd.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ var codecadon = require('../../codecadon');
 
 function make4175Buf(width, height) {
   var pitchBytes = width * 5 / 2;
-  var buf = new Buffer(pitchBytes * height);  
+  var buf = Buffer.alloc(pitchBytes * height);  
   var yOff = 0;
   for (var y=0; y<height; ++y) {
     var xOff = 0;
@@ -38,7 +38,7 @@ function make4175Buf(width, height) {
 function make420PBuf(width, height) {
   var lumaPitchBytes = width;
   var chromaPitchBytes = lumaPitchBytes / 2;
-  var buf = new Buffer(lumaPitchBytes * height * 3 / 2);
+  var buf = Buffer.alloc(lumaPitchBytes * height * 3 / 2);
   var lOff = 0;
   var uOff = lumaPitchBytes * height;
   var vOff = uOff + chromaPitchBytes * height / 2;
@@ -67,7 +67,7 @@ function make420PBuf(width, height) {
 function makeYUV422P10Buf(width, height) {
   var lumaPitchBytes = width * 2;
   var chromaPitchBytes = lumaPitchBytes / 2;
-  var buf = new Buffer(lumaPitchBytes * height * 2);  
+  var buf = Buffer.alloc(lumaPitchBytes * height * 2);  
   var lOff = 0;
   var uOff = lumaPitchBytes * height;
   var vOff = uOff + chromaPitchBytes * height;
@@ -183,7 +183,7 @@ scaleConvertTest('Performing scaling pgroup to YUV422P10',
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(srcWidth, srcHeight);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     var numQueued = scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeYUV422P10Buf(dstWidth, dstHeight);
@@ -207,7 +207,7 @@ scaleConvertTest('Handling undefined source',
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
     var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
       t.ok(err, 'should return error');
       done();
@@ -255,7 +255,7 @@ scaleConvertTest('Handling insufficient destination bytes',
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(srcWidth, srcHeight);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen - 128);
+    var dstBuf = Buffer.alloc(dstBufLen - 128);
     scaleConverter.scaleConvert(bufArray, dstBuf, function(err, result) {
       t.ok(err, 'should return error');
       done();

@@ -1,4 +1,4 @@
-/* Copyright 2016 Streampunk Media Ltd.
+/* Copyright 2017 Streampunk Media Ltd.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ var codecadon = require('../../codecadon');
 
 function make4175Buf(width, height) {
   var pitchBytes = width * 5 / 2;
-  var buf = new Buffer(pitchBytes * height);  
+  var buf = Buffer.alloc(pitchBytes * height);  
   var yOff = 0;
   for (var y=0; y<height; ++y) {
     var xOff = 0;
@@ -38,7 +38,7 @@ function make4175Buf(width, height) {
 function make420PBuf(width, height) {
   var lumaPitchBytes = width;
   var chromaPitchBytes = lumaPitchBytes / 2;
-  var buf = new Buffer(lumaPitchBytes * height * 3 / 2);
+  var buf = Buffer.alloc(lumaPitchBytes * height * 3 / 2);
   var lOff = 0;
   var uOff = lumaPitchBytes * height;
   var vOff = uOff + chromaPitchBytes * height / 2;
@@ -67,7 +67,7 @@ function make420PBuf(width, height) {
 function makeYUV422P10Buf(width, height) {
   var lumaPitchBytes = width * 2;
   var chromaPitchBytes = lumaPitchBytes / 2;
-  var buf = new Buffer(lumaPitchBytes * height * 2);  
+  var buf = Buffer.alloc(lumaPitchBytes * height * 2);  
   var lOff = 0;
   var uOff = lumaPitchBytes * height;
   var vOff = uOff + chromaPitchBytes * height;
@@ -93,7 +93,7 @@ function makeYUV422P10Buf(width, height) {
 
 function makeUYVY10Buf(width, height) {
   var pitchBytes = width * 4;
-  var buf = new Buffer(pitchBytes * height);  
+  var buf = Buffer.alloc(pitchBytes * height);  
   var yOff = 0;
   for (var y=0; y<height; ++y) {
     var xOff = 0;
@@ -111,7 +111,7 @@ function makeUYVY10Buf(width, height) {
 
 function makeV210Buf(width, height) {
   var pitchBytes = (width + (47 - (width - 1) % 48)) * 8 / 3;
-  var buf = new Buffer(pitchBytes * height);
+  var buf = Buffer.alloc(pitchBytes * height);
   buf.fill(0);
   var yOff = 0;
   for (var y=0; y<height; ++y) {
@@ -224,7 +224,7 @@ packTest('Performing packing pgroup to 420P',
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       var testDstBuf = make420PBuf(width, height);
@@ -247,7 +247,7 @@ packTest('Performing packing V210 to 420P',
     var bufArray = new Array(1);
     var srcBuf = makeV210Buf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       var testDstBuf = make420PBuf(width, height);
@@ -270,7 +270,7 @@ packTest('Performing packing pgroup to YUV422P10',
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeYUV422P10Buf(width, height);
@@ -293,7 +293,7 @@ packTest('Performing packing pgroup to UYVY10',
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeUYVY10Buf(width, height);
@@ -316,7 +316,7 @@ packTest('Performing packing YUV422P10 to UYVY10',
     var bufArray = new Array(1);
     var srcBuf = makeYUV422P10Buf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeUYVY10Buf(width, height);
@@ -339,7 +339,7 @@ packTest('Performing packing V210 to YUV422P10',
     var bufArray = new Array(1);
     var srcBuf = makeV210Buf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeYUV422P10Buf(width, height);
@@ -362,7 +362,7 @@ packTest('Performing packing YUV422P10 to pgroup',
     var bufArray = new Array(1);
     var srcBuf = makeYUV422P10Buf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       var testDstBuf = make4175Buf(width, height);
@@ -385,7 +385,7 @@ packTest('Performing packing 420P to pgroup',
     var bufArray = new Array(1);
     var srcBuf = make420PBuf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
       var testDstBuf = make4175Buf(width, height);
@@ -408,7 +408,7 @@ packTest('Performing packing YUV422P10 to V210',
     var bufArray = new Array(1);
     var srcBuf = makeYUV422P10Buf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     dstBuf.fill(0);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
@@ -432,7 +432,7 @@ packTest('Performing packing 420P to V210',
     var bufArray = new Array(1);
     var srcBuf = make420PBuf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     dstBuf.fill(0);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
@@ -456,7 +456,7 @@ packTest('Performing packing pgroup to V210',
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     dstBuf.fill(0);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
@@ -480,7 +480,7 @@ packTest('Performing packing V210 to pgroup',
     var bufArray = new Array(1);
     var srcBuf = makeV210Buf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     dstBuf.fill(0);
     var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
@@ -501,7 +501,7 @@ packTest('Handling undefined source',
     var srcTags = makeTags(width, height, 'pgroup', 0);
     var dstTags = makeTags(width, height, '420P', 0);
     var dstBufLen = packer.setInfo(srcTags, dstTags);
-    var dstBuf = new Buffer(dstBufLen);
+    var dstBuf = Buffer.alloc(dstBufLen);
     packer.pack(bufArray, dstBuf, function(err, result) {
       t.ok(err, 'should return error');
       done();
@@ -543,7 +543,7 @@ packTest('Handling insufficient destination bytes',
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;
-    var dstBuf = new Buffer(dstBufLen - 128);
+    var dstBuf = Buffer.alloc(dstBufLen - 128);
     packer.pack(bufArray, dstBuf, function(err, result) {
       t.ok(err, 'should return error');
       done();

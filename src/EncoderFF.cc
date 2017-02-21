@@ -194,29 +194,31 @@ void EncoderFF::encodeVideo(std::shared_ptr<Memory> srcBuf, std::shared_ptr<Memo
 
   AVPacket pkt;
   av_init_packet(&pkt);
-  pkt.data = NULL;
-  pkt.size = 0;
+  pkt.data = dstBuf->buf();
+  pkt.size = bytesReq();  
+  //pkt.data = NULL;
+  //pkt.size = 0;
 
   int got_output;
   avcodec_encode_video2(mContext, &pkt, mFrame, &got_output);
   *pDstBytes = got_output ? pkt.size : 0;
 
-  if (got_output && (0==mEncoding.compare("h264"))) {
-    *pDstBytes = 0;
-    if (checkGopStart(pkt.data)) {
-      *pDstBytes = mGopBuf_HWM;
-      if (mGopBuf) // copy previous full gop into current dstBuf
-        memcpy(dstBuf->buf(), mGopBuf->buf(), mGopBuf_HWM);
+  // if (got_output && (0==mEncoding.compare("h264"))) {
+  //   *pDstBytes = 0;
+  //   if (checkGopStart(pkt.data)) {
+  //     *pDstBytes = mGopBuf_HWM;
+  //     if (mGopBuf) // copy previous full gop into current dstBuf
+  //       memcpy(dstBuf->buf(), mGopBuf->buf(), mGopBuf_HWM);
 
-      // copy this encode result into new buffer
-      mGopBuf = Memory::makeNew(mBytesReq);
-      memcpy(mGopBuf->buf(), pkt.data, pkt.size);
-      mGopBuf_HWM = pkt.size;
-    } else if (mGopBuf) {
-      memcpy(mGopBuf->buf() + mGopBuf_HWM, pkt.data, pkt.size);
-      mGopBuf_HWM += pkt.size;
-    }
-  }
+  //     // copy this encode result into new buffer
+  //     mGopBuf = Memory::makeNew(mBytesReq);
+  //     memcpy(mGopBuf->buf(), pkt.data, pkt.size);
+  //     mGopBuf_HWM = pkt.size;
+  //   } else if (mGopBuf) {
+  //     memcpy(mGopBuf->buf() + mGopBuf_HWM, pkt.data, pkt.size);
+  //     mGopBuf_HWM += pkt.size;
+  //   }
+  // }
 
   av_packet_unref(&pkt);
   av_frame_unref(mFrame);

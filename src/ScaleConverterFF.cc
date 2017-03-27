@@ -29,7 +29,8 @@ ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std:
                                    const fXY &userScale, const fXY &userDstOffset)
   : mSwsContext(NULL),
     mSrcWidth(srcVidInfo->width()), mSrcHeight(srcVidInfo->height()), mSrcIlace(srcVidInfo->interlace()),
-    mSrcPixFmt((8==srcVidInfo->depth())?AV_PIX_FMT_YUV420P:AV_PIX_FMT_YUV422P10LE),
+    mSrcPixFmt(("RGBA8"==srcVidInfo->packing())?AV_PIX_FMT_RGBA:
+               (8==srcVidInfo->depth())?AV_PIX_FMT_YUV420P:AV_PIX_FMT_YUV422P10LE),
     mDstWidth(dstVidInfo->width()), mDstHeight(dstVidInfo->height()), mDstIlace(dstVidInfo->interlace()),
     mDstPixFmt((8==dstVidInfo->depth())?AV_PIX_FMT_YUV420P:AV_PIX_FMT_YUV422P10LE),
     mUserScale(userScale), mUserDstOffset(userDstOffset), 
@@ -72,13 +73,24 @@ ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std:
     return;
   }
 
-  mSrcLinesize[0] = (AV_PIX_FMT_YUV420P==mSrcPixFmt) ? mSrcWidth : mSrcWidth * 2;
-  mSrcLinesize[1] = (AV_PIX_FMT_YUV420P==mSrcPixFmt) ? mSrcWidth / 2 : mSrcWidth;
-  mSrcLinesize[2] = (AV_PIX_FMT_YUV420P==mSrcPixFmt) ? mSrcWidth / 2 : mSrcWidth;
+  const int *hdTable = sws_getCoefficients((0==srcVidInfo->colorimetry().compare("BT709-2"))?SWS_CS_ITU709:SWS_CS_ITU601);
+  sws_setColorspaceDetails(mSwsContext, hdTable, 0, hdTable, 0, 0, 1 << 16, 1 << 16);
+ 
+  if (AV_PIX_FMT_RGBA==mSrcPixFmt) {
+    mSrcLinesize[0] = mSrcWidth * 4;
+  } else {
+    uint32_t srcLumaPitch = (AV_PIX_FMT_YUV420P==mSrcPixFmt) ? mSrcWidth : mSrcWidth * 2;
+    uint32_t srcChromaPitch = srcLumaPitch / 2;
+    mSrcLinesize[0] = srcLumaPitch;
+    mSrcLinesize[1] = srcChromaPitch;
+    mSrcLinesize[2] = srcChromaPitch;
+  }
 
-  mDstLinesize[0] = (AV_PIX_FMT_YUV420P==mDstPixFmt) ? mDstWidth : mDstWidth * 2;
-  mDstLinesize[1] = (AV_PIX_FMT_YUV420P==mDstPixFmt) ? mDstWidth / 2 : mDstWidth;
-  mDstLinesize[2] = (AV_PIX_FMT_YUV420P==mDstPixFmt) ? mDstWidth / 2 : mDstWidth;
+  uint32_t dstLumaPitch = (AV_PIX_FMT_YUV420P==mDstPixFmt) ? mDstWidth : mDstWidth * 2;
+  uint32_t dstChromaPitch = dstLumaPitch / 2;
+  mDstLinesize[0] = dstLumaPitch;
+  mDstLinesize[1] = dstChromaPitch;
+  mDstLinesize[2] = dstChromaPitch;
 }
 
 ScaleConverterFF::~ScaleConverterFF() {
@@ -86,7 +98,7 @@ ScaleConverterFF::~ScaleConverterFF() {
 }
 
 std::string ScaleConverterFF::packingRequired() const {
-  return (AV_PIX_FMT_YUV420P==mSrcPixFmt)?"420P":"YUV422P10";
+  return (AV_PIX_FMT_RGBA==mSrcPixFmt)?"RGBA8":(AV_PIX_FMT_YUV420P==mSrcPixFmt)?"420P":"YUV422P10";
 }
 
 void ScaleConverterFF::scaleConvertField (uint8_t **srcData, uint8_t **dstData, uint32_t srcField, uint32_t dstField) {
@@ -112,9 +124,15 @@ void ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf, std::s
   if (AV_PIX_FMT_YUV420P==mSrcPixFmt)
     srcChromaBytes /= 2;
   srcData[0] = (uint8_t *)srcBuf->buf();
-  srcData[1] = (uint8_t *)(srcBuf->buf() + srcLumaBytes);
-  srcData[2] = (uint8_t *)(srcBuf->buf() + srcLumaBytes + srcChromaBytes);
-  srcData[3] = NULL;
+  if (AV_PIX_FMT_RGBA==mSrcPixFmt) {
+    srcData[1] = NULL;
+    srcData[2] = NULL;
+    srcData[3] = NULL;
+  } else {
+    srcData[1] = (uint8_t *)(srcBuf->buf() + srcLumaBytes);
+    srcData[2] = (uint8_t *)(srcBuf->buf() + srcLumaBytes + srcChromaBytes);
+    srcData[3] = NULL;
+  }
 
   uint8_t *dstData[4];
   uint32_t dstLumaBytes = mDstLinesize[0] * mDstHeight;

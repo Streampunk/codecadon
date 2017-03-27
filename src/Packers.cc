@@ -49,6 +49,10 @@ uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t hei
     uint32_t pitchBytes = width * 4;
     fmtBytes = pitchBytes * height;
   }
+  else if (0 == fmtCode.compare("RGBA8")) {
+    uint32_t pitchBytes = width * 4;
+    fmtBytes = pitchBytes * height;
+  }
   else {
     std::string err = std::string("Unsupported format \'") + fmtCode.c_str() + "\'\n";
     Nan::ThrowError(err.c_str());

@@ -102,7 +102,9 @@ Packers::Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFm
       Nan::ThrowError(err.c_str());
     }
   } else if (0 == mDstFmtCode.compare("YUV422P10")) {
-    if (0 == mSrcFmtCode.compare("pgroup"))
+    if (0 == mSrcFmtCode.compare("UYVY10"))
+      mConvertFn = &Packers::convertUYVY10toYUV422P10;
+    else if (0 == mSrcFmtCode.compare("pgroup"))
       mConvertFn = &Packers::convertPGrouptoYUV422P10;
     else if (0 == mSrcFmtCode.compare("v210"))
       mConvertFn = &Packers::convertV210toYUV422P10;
@@ -111,7 +113,9 @@ Packers::Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFm
       Nan::ThrowError(err.c_str());
     }
   } else if (0 == mDstFmtCode.compare("420P")) {
-    if (0 == mSrcFmtCode.compare("pgroup"))
+    if (0 == mSrcFmtCode.compare("UYVY10"))
+      mConvertFn = &Packers::convertUYVY10to420P;
+    else if (0 == mSrcFmtCode.compare("pgroup"))
       mConvertFn = &Packers::convertPGroupto420P;
     else if (0 == mSrcFmtCode.compare("v210"))
       mConvertFn = &Packers::convertV210to420P;
@@ -120,7 +124,9 @@ Packers::Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFm
       Nan::ThrowError(err.c_str());
     }
   } else if (0 == mDstFmtCode.compare("pgroup")) {
-    if (0 == mSrcFmtCode.compare("YUV422P10"))
+    if (0 == mSrcFmtCode.compare("UYVY10"))
+      mConvertFn = &Packers::convertUYVY10toPGroup;
+    else if (0 == mSrcFmtCode.compare("YUV422P10"))
       mConvertFn = &Packers::convertYUV422P10toPGroup;
     else if (0 == mSrcFmtCode.compare("420P"))
       mConvertFn = &Packers::convert420PtoPGroup;
@@ -458,6 +464,113 @@ void Packers::convertV210to420P (const uint8_t *const srcBuf, uint8_t *const dst
       dstVLine += dstChromaPitchBytes;
     } 
   }
+}
+
+void Packers::convertUYVY10toPGroup (const uint8_t *const srcBuf, uint8_t *const dstBuf) const {
+  uint32_t srcPitchBytes = mSrcWidth * 4;
+  uint32_t dstPitchBytes = mSrcWidth * 5 / 2;
+
+  const uint8_t *srcLine = srcBuf;
+  uint8_t *dstLine = dstBuf;
+
+  for (uint32_t y=0; y<mSrcHeight; ++y) {
+    const uint32_t *srcInts = (uint32_t *)srcLine;
+    uint8_t *dstBytes = dstLine;
+
+    for (uint32_t x=0; x<mSrcWidth; x+=2) {
+      uint32_t s0 = srcInts[0]; // u0 | y0
+      uint32_t s1 = srcInts[1]; // v0 | y1
+      srcInts += 2;
+
+      dstBytes[0] = (s0 & 0x3fc) >> 2;
+      dstBytes[1] = ((s0 & 0x3) << 6) | ((s0 & 0x3f00000) >> 20);
+      dstBytes[2] = ((s0 & 0xf0000) >> 12) | ((s1 & 0x3c0) >> 6);
+      dstBytes[3] = ((s1 & 0x3f) << 2) | ((s1 & 0x3000000) >> 24);
+      dstBytes[4] = (s1 & 0xff0000) >> 16;
+      dstBytes += 5;
+    }
+
+    srcLine += srcPitchBytes;
+    dstLine += dstPitchBytes;
+  }  
+}
+
+void Packers::convertUYVY10toYUV422P10 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const {
+  uint32_t srcPitchBytes = mSrcWidth * 4;
+  uint32_t dstLumaPitchBytes = mSrcWidth * 2;
+  uint32_t dstChromaPitchBytes = mSrcWidth;
+  uint32_t dstLumaPlaneBytes = dstLumaPitchBytes * mSrcHeight;
+
+  const uint8_t *srcLine = srcBuf;
+  uint8_t *dstYLine = dstBuf;
+  uint8_t *dstULine = dstBuf + dstLumaPlaneBytes;
+  uint8_t *dstVLine = dstBuf + dstLumaPlaneBytes + dstLumaPlaneBytes / 2;
+
+  for (uint32_t y=0; y<mSrcHeight; ++y) {
+    const uint32_t *srcInts = (uint32_t *)srcLine;
+    uint32_t *dstYInts = (uint32_t *)dstYLine;
+    uint32_t *dstUInts = (uint32_t *)dstULine;
+    uint32_t *dstVInts = (uint32_t *)dstVLine;
+
+    for (uint32_t x=0; x<mSrcWidth; x+=4) {
+      uint32_t s0 = srcInts[0]; // u0 | y0
+      uint32_t s1 = srcInts[1]; // v0 | y1
+      uint32_t s2 = srcInts[2]; // u1 | y2
+      uint32_t s3 = srcInts[3]; // v1 | y3
+      srcInts += 4;
+
+      dstYInts[0] = ((s0 & 0x3ff0000) >> 16) | (s1 & 0x3ff0000);
+      dstYInts[1] = ((s2 & 0x3ff0000) >> 16) | (s3 & 0x3ff0000);
+      dstUInts[0] = (s0 & 0x3ff) | ((s2 & 0x3ff) << 16);
+      dstVInts[0] = (s1 & 0x3ff) | ((s3 & 0x3ff) << 16);
+      dstYInts += 2;
+      dstUInts += 1;
+      dstVInts += 1;
+    }
+
+    srcLine += srcPitchBytes;
+    dstYLine += dstLumaPitchBytes;
+    dstULine += dstChromaPitchBytes;
+    dstVLine += dstChromaPitchBytes;
+  }  
+}
+
+void Packers::convertUYVY10to420P (const uint8_t *const srcBuf, uint8_t *const dstBuf) const {
+  uint32_t srcPitchBytes = mSrcWidth * 4;
+  uint32_t dstLumaPitchBytes = mSrcWidth;
+  uint32_t dstChromaPitchBytes = mSrcWidth;
+  uint32_t dstLumaPlaneBytes = dstLumaPitchBytes * mSrcHeight;
+
+  const uint8_t *srcLine = srcBuf;
+  uint8_t *dstYLine = dstBuf;
+  uint8_t *dstULine = dstBuf + dstLumaPlaneBytes;
+  uint8_t *dstVLine = dstBuf + dstLumaPlaneBytes + dstLumaPlaneBytes / 2;
+
+  for (uint32_t y=0; y<mSrcHeight; ++y) {
+    const uint32_t *srcInts = (uint32_t *)srcLine;
+    uint8_t *dstYBytes = dstYLine;
+    uint8_t *dstUBytes = dstULine;
+    uint8_t *dstVBytes = dstVLine;
+
+    for (uint32_t x=0; x<mSrcWidth; x+=4) {
+      uint32_t s0 = srcInts[0]; // u0 | y0
+      uint32_t s1 = srcInts[1]; // v0 | y1
+      srcInts += 2;
+
+      dstYBytes[0] = (s0 & 0x3fc0000) >> 18;
+      dstYBytes[1] = (s1 & 0x3fc0000) >> 18;
+      dstUBytes[0] = (s0 & 0x3fc) >> 2;
+      dstVBytes[0] = (s1 & 0x3fc) >> 2;
+      dstYBytes += 2;
+      dstUBytes += 1;
+      dstVBytes += 1;
+    }
+
+    srcLine += srcPitchBytes;
+    dstYLine += dstLumaPitchBytes;
+    dstULine += dstChromaPitchBytes;
+    dstVLine += dstChromaPitchBytes;
+  }  
 }
 
 void Packers::convertYUV422P10toPGroup (const uint8_t *const srcBuf, uint8_t *const dstBuf) const {

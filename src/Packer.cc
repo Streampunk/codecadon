@@ -76,7 +76,8 @@ void Packer::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
   printf("Packer DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
 
   if (mSrcVidInfo->packing().compare("pgroup") && mSrcVidInfo->packing().compare("v210") && 
-      mSrcVidInfo->packing().compare("YUV422P10") && mSrcVidInfo->packing().compare("420P")) {
+      mSrcVidInfo->packing().compare("YUV422P10") && mSrcVidInfo->packing().compare("UYVY10") && 
+      mSrcVidInfo->packing().compare("420P")) {
     std::string err = std::string("Unsupported source format \'") + mSrcVidInfo->packing() + "\'";
     return Nan::ThrowError(err.c_str());
   }

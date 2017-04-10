@@ -348,6 +348,75 @@ packTest('Performing packing V210 to YUV422P10',
     });
   });
 
+packTest('Performing packing UYVY10 to pgroup',
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, packer, done) {
+    var width = 1280;
+    var height = 720;
+    var srcTags = makeTags(width, height, 'UYVY10', 0);
+    var dstTags = makeTags(width, height, 'pgroup', 0);
+    var dstBufLen = packer.setInfo(srcTags, dstTags);
+
+    var bufArray = new Array(1);
+    var srcBuf = makeUYVY10Buf(width, height);
+    bufArray[0] = srcBuf;
+    var dstBuf = Buffer.alloc(dstBufLen);
+    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+      t.notOk(err, 'no error expected');
+      var testDstBuf = make4175Buf(width, height);
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      done();
+    });
+  });
+
+packTest('Performing packing UYVY10 to YUV422P10',
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, packer, done) {
+    var width = 1280;
+    var height = 720;
+    var srcTags = makeTags(width, height, 'UYVY10', 0);
+    var dstTags = makeTags(width, height, 'YUV422P10', 0);
+    var dstBufLen = packer.setInfo(srcTags, dstTags);
+
+    var bufArray = new Array(1);
+    var srcBuf = makeUYVY10Buf(width, height);
+    bufArray[0] = srcBuf;
+    var dstBuf = Buffer.alloc(dstBufLen);
+    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+      t.notOk(err, 'no error expected');
+      var testDstBuf = makeYUV422P10Buf(width, height);
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      done();
+    });
+  });
+
+packTest('Performing packing UYVY10 to 420P',
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, packer, done) {
+    var width = 1280;
+    var height = 720;
+    var srcTags = makeTags(width, height, 'UYVY10', 0);
+    var dstTags = makeTags(width, height, '420P', 0);
+    var dstBufLen = packer.setInfo(srcTags, dstTags);
+
+    var bufArray = new Array(1);
+    var srcBuf = makeUYVY10Buf(width, height);
+    bufArray[0] = srcBuf;
+    var dstBuf = Buffer.alloc(dstBufLen);
+    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+      t.notOk(err, 'no error expected');
+      var testDstBuf = make420PBuf(width, height);
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      done();
+    });
+  });
+
 packTest('Performing packing YUV422P10 to pgroup',
   function (t, err) {
     t.notOk(err, 'no error expected');

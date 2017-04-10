@@ -40,6 +40,9 @@ private:
   void convertPGroupto420P (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
   void convertV210to420P (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
 
+  void convertUYVY10toPGroup (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+  void convertUYVY10toYUV422P10 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+  void convertUYVY10to420P (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
   void convertYUV422P10toPGroup (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
   void convert420PtoPGroup (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
   void convertYUV422P10toV210 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;

@@ -43,9 +43,17 @@ ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std:
   // Calculate scaling required to undo swscale's fit algorithm so that circles stay as circles!
   mScale = fXY(fitScale.x == boxScale.x ? 1.0f : boxScale.y / fitScale.x,
                fitScale.y == boxScale.y ? 1.0f : boxScale.x / fitScale.y);
-  mScale *= mUserScale;
+  fXY limUserScale = mUserScale;
+  if ((float)mSrcWidth * boxScale.x * limUserScale.x > (float)mDstWidth)
+    limUserScale.x = (float)mDstWidth / ((float)mSrcWidth * boxScale.x);
+  if ((float)mSrcHeight * boxScale.y * limUserScale.y > (float)mDstHeight)
+    limUserScale.y = (float)mDstHeight / ((float)mSrcHeight * boxScale.y);
+  if (limUserScale != mUserScale)
+    printf("User scaling limited to full frame %1.2f:%1.2f -> %1.2f:%1.2f\n",
+      mUserScale.x, mUserScale.y, limUserScale.x, limUserScale.y);
+  mScale *= limUserScale;
 
-  fXY scaledXY(mSrcWidth * boxScale.x * mUserScale.x, mSrcHeight * boxScale.y * mUserScale.y);
+  fXY scaledXY(mSrcWidth * boxScale.x * limUserScale.x, mSrcHeight * boxScale.y * limUserScale.y);
   fXY scaledCentre((scaledXY.x - 1) / 2, (scaledXY.y - 1) / 2);
   fXY dstCentre(((float)mDstWidth - 1) / 2, ((float)mDstHeight - 1) / 2);
   mDstOffset = dstCentre - scaledCentre + mUserDstOffset;

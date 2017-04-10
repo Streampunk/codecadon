@@ -111,7 +111,7 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
     return Nan::ThrowError("Scale parameter invalid");
 
   fXY scale(Nan::To<double>(scaleXY->Get(0)).FromJust(), Nan::To<double>(scaleXY->Get(1)).FromJust());
-  if ((scale.x > 1.0f) || (scale.y > 1.0f)) {
+  if ((scale.x > 10.0f) || (scale.y > 10.0f)) {
     std::string err = std::string("Unsupported Scale values X:") + std::to_string(scale.x).c_str() + ", Y:" + std::to_string(scale.y).c_str();
     return Nan::ThrowError(err.c_str());
   }

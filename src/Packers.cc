@@ -538,29 +538,31 @@ void Packers::convertUYVY10toYUV422P10 (const uint8_t *const srcBuf, uint8_t *co
 void Packers::convertUYVY10to420P (const uint8_t *const srcBuf, uint8_t *const dstBuf) const {
   uint32_t srcPitchBytes = mSrcWidth * 4;
   uint32_t dstLumaPitchBytes = mSrcWidth;
-  uint32_t dstChromaPitchBytes = mSrcWidth;
+  uint32_t dstChromaPitchBytes = mSrcWidth / 2;
   uint32_t dstLumaPlaneBytes = dstLumaPitchBytes * mSrcHeight;
 
   const uint8_t *srcLine = srcBuf;
   uint8_t *dstYLine = dstBuf;
   uint8_t *dstULine = dstBuf + dstLumaPlaneBytes;
-  uint8_t *dstVLine = dstBuf + dstLumaPlaneBytes + dstLumaPlaneBytes / 2;
+  uint8_t *dstVLine = dstBuf + dstLumaPlaneBytes + dstLumaPlaneBytes / 4;
 
   for (uint32_t y=0; y<mSrcHeight; ++y) {
     const uint32_t *srcInts = (uint32_t *)srcLine;
     uint8_t *dstYBytes = dstYLine;
     uint8_t *dstUBytes = dstULine;
     uint8_t *dstVBytes = dstVLine;
+    bool evenLine = (y & 1) == 0;
 
-    for (uint32_t x=0; x<mSrcWidth; x+=4) {
+    for (uint32_t x=0; x<mSrcWidth; x+=2) {
       uint32_t s0 = srcInts[0]; // u0 | y0
       uint32_t s1 = srcInts[1]; // v0 | y1
       srcInts += 2;
 
       dstYBytes[0] = (s0 & 0x3fc0000) >> 18;
       dstYBytes[1] = (s1 & 0x3fc0000) >> 18;
-      dstUBytes[0] = (s0 & 0x3fc) >> 2;
-      dstVBytes[0] = (s1 & 0x3fc) >> 2;
+
+      dstUBytes[0] = evenLine ? ((s0 & 0x3fc) >> 2) : (((s0 & 0x3fc) >> 2) + dstUBytes[0]) >> 1;
+      dstVBytes[0] = evenLine ? ((s1 & 0x3fc) >> 2) : (((s1 & 0x3fc) >> 2) + dstUBytes[0]) >> 1;
       dstYBytes += 2;
       dstUBytes += 1;
       dstVBytes += 1;
@@ -568,8 +570,10 @@ void Packers::convertUYVY10to420P (const uint8_t *const srcBuf, uint8_t *const d
 
     srcLine += srcPitchBytes;
     dstYLine += dstLumaPitchBytes;
-    dstULine += dstChromaPitchBytes;
-    dstVLine += dstChromaPitchBytes;
+    if (!evenLine) {
+      dstULine += dstChromaPitchBytes;
+      dstVLine += dstChromaPitchBytes;
+    } 
   }  
 }
 

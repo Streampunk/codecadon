@@ -89,7 +89,12 @@ void Decoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
     Nan::ThrowError(err.c_str());
   }
 
-  mDecoderDriver = DecoderFactory::createDecoder(mSrcVidInfo, mDstVidInfo);
+  try {
+    mDecoderDriver = DecoderFactory::createDecoder(mSrcVidInfo, mDstVidInfo);
+  }
+  catch (std::exception& err) {
+    Nan::ThrowError(err.what());
+  }
 }
 
 NAN_METHOD(Decoder::SetInfo) {

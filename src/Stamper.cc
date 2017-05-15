@@ -72,6 +72,33 @@ private:
   iXY mDstOrg;
 };
 
+class MixProcessData : public iProcessData {
+public:
+  MixProcessData (Local<Array> srcBufArray, Local<Object> dstBufObj, float pressure)
+    : mPersistentDstBuf(new Persist(dstBufObj)),
+      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj))),
+      mPressure(pressure)
+  { 
+    for (uint32_t i=0; i<srcBufArray->Length(); ++i) {
+      Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(i));
+      mPersistentSrcBufs.push_back(std::shared_ptr<Persist>(new Persist(srcBufObj)));
+      mSrcBufs.push_back(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj)));
+    }
+  }
+  ~MixProcessData() { }
+  
+  std::vector<std::shared_ptr<Memory> > srcBufs() const { return mSrcBufs; }
+  std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
+  float pressure() const { return mPressure; }
+
+private:
+  std::vector<std::shared_ptr<Persist> > mPersistentSrcBufs;
+  std::unique_ptr<Persist> mPersistentDstBuf;
+  std::vector<std::shared_ptr<Memory> > mSrcBufs;
+  std::shared_ptr<Memory> mDstBuf;
+  float mPressure;
+};
+
 Stamper::Stamper(Nan::Callback *callback) 
   : mWorker(new MyWorker(callback)), mSetInfoOK(false), mSrcFormatBytes(0), mDstBytesReq(0) {
   AsyncQueueWorker(mWorker);
@@ -92,6 +119,12 @@ uint32_t Stamper::processFrame (std::shared_ptr<iProcessData> processData) {
   if (cpd) {
     func = "copy";
     doCopy(cpd);
+  }
+
+  std::shared_ptr<MixProcessData> mpd = std::dynamic_pointer_cast<MixProcessData>(processData);
+  if (mpd) {
+    func = "mix";
+    doMix(mpd);
   }
 
   printf("%s: %.2fms\n", func.c_str(), t.delta());
@@ -235,6 +268,69 @@ void Stamper::doCopy(std::shared_ptr<CopyProcessData> cpd) {
   }
 }
 
+void Stamper::doMix(std::shared_ptr<MixProcessData> mpd) {
+  uint32_t bytesPerPixel = 2;
+  uint32_t lumaLinesPerChromaLine = 1;
+  if (0 == mSrcVidInfo->packing().compare("420P")) {
+    bytesPerPixel = 1;
+    lumaLinesPerChromaLine = 2;
+  }
+
+  uint32_t srcLumaPitchBytes = mSrcVidInfo->width() * bytesPerPixel;
+  uint32_t srcChromaPitchBytes = srcLumaPitchBytes / 2;
+  uint32_t srcLumaPlaneBytes = srcLumaPitchBytes * mSrcVidInfo->height();
+  uint32_t srcChromaPlaneBytes = srcChromaPitchBytes * mSrcVidInfo->height() / lumaLinesPerChromaLine;
+
+  uint32_t dstLumaPitchBytes = mDstVidInfo->width() * bytesPerPixel;
+  uint32_t dstChromaPitchBytes = dstLumaPitchBytes / 2;
+  uint32_t dstLumaPlaneBytes = dstLumaPitchBytes * mDstVidInfo->height();
+  uint32_t dstChromaPlaneBytes = dstChromaPitchBytes * mDstVidInfo->height() / lumaLinesPerChromaLine;
+
+  const uint8_t *srcLine[2][3];
+  for (uint32_t s=0; s<2; ++s) { 
+    srcLine[s][0] = mpd->srcBufs()[s]->buf();
+    srcLine[s][1] = srcLine[s][0] + srcLumaPlaneBytes;
+    srcLine[s][2] = srcLine[s][1] + srcChromaPlaneBytes;
+  }
+
+  uint8_t *dstLine[3];
+  dstLine[0] = mpd->dstBuf()->buf();
+  dstLine[1] = dstLine[0] + dstLumaPlaneBytes;
+  dstLine[2] = dstLine[1] + dstChromaPlaneBytes;
+
+  float pressure = mpd->pressure();
+
+  for (uint32_t p=0; p<3; ++p) {
+    uint32_t numPixels = (0==p) ? mSrcVidInfo->width() : mSrcVidInfo->width() / 2;
+    for (uint32_t y=0; y<mSrcVidInfo->height(); ++y) {
+      bool evenLine = (y & 1) == 0;
+      if (1==bytesPerPixel) {
+        const uint8_t *srcA = srcLine[0][p];
+        const uint8_t *srcB = srcLine[1][p];
+        uint8_t *dst = dstLine[p];
+
+        if ((0==p) || evenLine) {
+          for (uint32_t x=0; x < numPixels; ++x)
+            *dst++ = uint8_t((float)*srcA++ * pressure + (float)*srcB++ * (1.0f - pressure));
+        }
+      } else {
+        const uint16_t *srcA = (const uint16_t *)srcLine[0][p];
+        const uint16_t *srcB = (const uint16_t *)srcLine[1][p];
+        uint16_t *dst = (uint16_t *)dstLine[p];
+
+        for (uint32_t x=0; x < numPixels; ++x)
+          *dst++ = uint16_t((float)*srcA++ * pressure + (float)*srcB++ * (1.0f - pressure));
+      }
+
+      if ((0==p) || (1 == lumaLinesPerChromaLine) || !evenLine) {
+        for (uint32_t s=0; s<2; ++s)
+          srcLine[s][p] += (0==p) ? srcLumaPitchBytes : srcChromaPitchBytes;
+        dstLine[p] += (0==p) ? dstLumaPitchBytes : dstChromaPitchBytes;
+      }
+    }
+  }
+}
+
 NAN_METHOD(Stamper::SetInfo) {
   if (info.Length() != 2)
     return Nan::ThrowError("Stamper SetInfo expects 2 arguments");
@@ -344,6 +440,51 @@ NAN_METHOD(Stamper::Copy) {
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));
 }
 
+NAN_METHOD(Stamper::Mix) {
+  if (info.Length() != 4)
+    return Nan::ThrowError("Stamper Mix expects 4 arguments");
+  if (!info[0]->IsArray())
+    return Nan::ThrowError("Stamper Mix requires a valid source buffer array as the first parameter");
+  if (!info[1]->IsObject())
+    return Nan::ThrowError("Stamper Mix requires a valid destination buffer as the second parameter");
+  if (!info[2]->IsObject())
+    return Nan::ThrowError("Stamper Mix requires a valid params object as the third parameter");
+  if (!info[3]->IsFunction())
+    return Nan::ThrowError("Stamper Mix requires a valid callback as the fourth parameter");
+
+  Local<Array> srcBufArray = Local<Array>::Cast(info[0]);
+  Local<Object> dstBufObj = Local<Object>::Cast(info[1]);
+  Local<Object> paramTags = Local<Object>::Cast(info[2]);
+  Local<Function> callback = Local<Function>::Cast(info[3]);
+
+  Stamper* obj = Nan::ObjectWrap::Unwrap<Stamper>(info.Holder());
+
+  if (!obj->mSetInfoOK)
+    return Nan::ThrowError("Mix called with incorrect setup parameters");
+
+  obj->mSrcFormatBytes = getFormatBytes(obj->mSrcVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height());
+  for (uint32_t i=0; i<srcBufArray->Length(); ++i) {
+    Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(i));
+    if (obj->mSrcFormatBytes > (uint32_t)node::Buffer::Length(srcBufObj))
+      Nan::ThrowError("Insufficient source buffer for Mix\n");
+  }
+
+  if (obj->mDstBytesReq > node::Buffer::Length(dstBufObj))
+    return Nan::ThrowError("Insufficient destination buffer for specified format");
+
+  Local<String> pressureStr = Nan::New<String>("pressure").ToLocalChecked();
+  Local<Object> pressureObj = Local<Object>::Cast(Nan::Get(paramTags, pressureStr).ToLocalChecked());
+  if (pressureObj->IsNull())
+    return Nan::ThrowError("pressure parameter invalid");
+  float pressure = (float)Nan::To<double>(pressureObj).FromJust();
+
+  std::shared_ptr<iProcessData> mpd = 
+    std::make_shared<MixProcessData>(srcBufArray, dstBufObj, pressure);
+  obj->mWorker->doFrame(mpd, obj, new Nan::Callback(callback));
+
+  info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));
+}
+
 NAN_METHOD(Stamper::Quit) {
   if (info.Length() != 1)
     return Nan::ThrowError("Packer quit expects 1 argument");
@@ -366,6 +507,7 @@ NAN_MODULE_INIT(Stamper::Init) {
   SetPrototypeMethod(tpl, "setInfo", SetInfo);
   SetPrototypeMethod(tpl, "wipe", Wipe);
   SetPrototypeMethod(tpl, "copy", Copy);
+  SetPrototypeMethod(tpl, "mix", Mix);
   SetPrototypeMethod(tpl, "quit", Quit);
 
   constructor().Reset(Nan::GetFunction(tpl).ToLocalChecked());

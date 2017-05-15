@@ -25,6 +25,7 @@ class MyWorker;
 class EssenceInfo;
 class WipeProcessData;
 class CopyProcessData;
+class MixProcessData;
 
 class Stamper : public Nan::ObjectWrap, public iProcess {
 public:
@@ -40,6 +41,7 @@ private:
   void doSetInfo(v8::Local<v8::Object> srcTags, v8::Local<v8::Object> dstTags);
   void doWipe(std::shared_ptr<WipeProcessData> wpd);
   void doCopy(std::shared_ptr<CopyProcessData> cpd);
+  void doMix(std::shared_ptr<MixProcessData> spd);
 
   static NAN_METHOD(New) {
     if (info.IsConstructCall()) {
@@ -65,6 +67,7 @@ private:
   static NAN_METHOD(SetInfo);
   static NAN_METHOD(Wipe);
   static NAN_METHOD(Copy);
+  static NAN_METHOD(Mix);
   static NAN_METHOD(Quit);
 
   MyWorker *mWorker;

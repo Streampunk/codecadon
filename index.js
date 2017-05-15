@@ -16,8 +16,8 @@
 'use strict';
 var codecAdon = require('bindings')('./Release/codecadon');
 
-//var SegfaultHandler = require('../../node-segfault-handler');
-//SegfaultHandler.registerHandler("crash.log");
+var SegfaultHandler = require('segfault-handler');
+SegfaultHandler.registerHandler("crash.log");
 
 const util = require('util');
 const EventEmitter = require('events');
@@ -246,6 +246,17 @@ Stamper.prototype.wipe = function(dstBuf, paramTags, cb) {
 Stamper.prototype.copy = function(srcBufArray, dstBuf, paramTags, cb) {
   try {
     var numQueued = this.stamperAdon.copy(srcBufArray, dstBuf, paramTags, (err, resultBytes) => {
+      cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
+    });
+    return numQueued;
+  } catch (err) {
+    cb(err);
+  }
+}
+
+Stamper.prototype.mix = function(srcBufArray, dstBuf, paramTags, cb) {
+  try {
+    var numQueued = this.stamperAdon.mix(srcBufArray, dstBuf, paramTags, (err, resultBytes) => {
       cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
     });
     return numQueued;

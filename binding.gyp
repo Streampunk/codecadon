@@ -54,6 +54,9 @@
                 ]
               },
               { # ia32 or x64
+                "defines": [
+                  "__STDC_CONSTANT_MACROS"
+                ],
                 "cflags_cc!": [
                   "-fno-rtti",
                   "-fno-exceptions"

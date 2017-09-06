@@ -92,7 +92,7 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
 
   if (mSrcVidInfo->packing().compare("pgroup") && mSrcVidInfo->packing().compare("v210") && 
       mSrcVidInfo->packing().compare("YUV422P10") && mSrcVidInfo->packing().compare("UYVY10") && mSrcVidInfo->packing().compare("420P") && 
-      mSrcVidInfo->packing().compare("RGBA8")) {
+      mSrcVidInfo->packing().compare("RGBA8") && mSrcVidInfo->packing().compare("BGR10-A") && mSrcVidInfo->packing().compare("BGR10-A-BS")) {
     std::string err = std::string("Unsupported source format \'") + mSrcVidInfo->packing() + "\'";
     return Nan::ThrowError(err.c_str());
   }
@@ -132,10 +132,12 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
   if (!mUnityPacking)
     mPacker = std::make_shared<Packers>(mSrcVidInfo->width(), mSrcVidInfo->height(),
                                         mSrcVidInfo->packing(), mScaleConverterFF->packingRequired());
+  std::string srcCol = mSrcVidInfo->packing().substr(0, 3);
+  bool srcIsRGB = ((0 == srcCol.compare("RGB")) || (0 == srcCol.compare("BGR")));
   mUnityScale = ((mSrcVidInfo->width() == mDstVidInfo->width()) &&
                  (mSrcVidInfo->height() == mDstVidInfo->height()) &&
                  (0==mSrcVidInfo->interlace().compare(mDstVidInfo->interlace())) &&
-                 !(0==mSrcVidInfo->packing().compare("RGBA8"))); // Use scaler to do colourspace conversion!!
+                 !srcIsRGB); // Use scaler to do colourspace conversion!!
   mDstBytesReq = getFormatBytes(mDstVidInfo->packing(), mDstVidInfo->width(), mDstVidInfo->height());
 }
 

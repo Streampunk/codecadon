@@ -51,6 +51,8 @@ private:
   void convertPGrouptoV210 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
   void convertV210toPGroup (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
 
+  void convertBGR10AtoGBRP16 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const;
+
   const uint32_t mSrcWidth;
   const uint32_t mSrcHeight;
   const std::string mSrcFmtCode;

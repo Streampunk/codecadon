@@ -53,6 +53,12 @@ uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t hei
     uint32_t pitchBytes = width * 4;
     fmtBytes = pitchBytes * height;
   }
+  else if ((0 == fmtCode.compare("BGR10-A")) || (0 == fmtCode.compare("BGR10-A-BS"))) {
+    fmtBytes = width * height * 4;
+  }
+  else if (0 == fmtCode.compare("GBRP16")) {
+    fmtBytes = width * height * 6;
+  }
   else {
     std::string err = std::string("Unsupported format \'") + fmtCode.c_str() + "\'\n";
     Nan::ThrowError(err.c_str());
@@ -87,6 +93,32 @@ void dump420P (const uint8_t *const buf, uint32_t width, uint32_t height, uint32
       vbuf += width / 2;
     }
   }  
+}
+
+void dumpBGR10Raw (const uint8_t *const rgbBuf, uint32_t width, uint32_t numLines) {
+  const uint32_t *buf = (uint32_t *)rgbBuf;
+  for (uint32_t i = 0; i < numLines; ++i) {
+    printf("BGR Line%02d: %08x, %08x, %08x, %08x, %08x, %08x, %08x, %08x, %08x, %08x\n", 
+      i, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9]);
+    buf += width;
+  }
+}
+
+void dumpGBRP16 (const uint8_t *const rgbBuf, uint32_t width, uint32_t height, uint32_t numLines) {
+  const uint16_t *gbuf = (uint16_t *)rgbBuf;
+  const uint16_t *bbuf = gbuf + width * height;
+  const uint16_t *rbuf = bbuf + width * height;
+  for (uint32_t i = 0; i < numLines; ++i) {
+    printf("G Line%02d: %04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x\n", 
+      i, gbuf[0], gbuf[1], gbuf[2], gbuf[3], gbuf[4], gbuf[5], gbuf[6], gbuf[7], gbuf[8], gbuf[9]);
+    printf("B Line%02d: %04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x\n", 
+      i, bbuf[0], bbuf[1], bbuf[2], bbuf[3], bbuf[4], bbuf[5], bbuf[6], bbuf[7], bbuf[8], bbuf[9]);
+    printf("R Line%02d: %04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x, %04x\n", 
+      i, rbuf[0], rbuf[1], rbuf[2], rbuf[3], rbuf[4], rbuf[5], rbuf[6], rbuf[7], rbuf[8], rbuf[9]);
+    gbuf += width;
+    bbuf += width;
+    rbuf += width;
+  }
 }
 
 Packers::Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFmtCode, const std::string& dstFmtCode)
@@ -143,6 +175,13 @@ Packers::Packers(uint32_t srcWidth, uint32_t srcHeight, const std::string& srcFm
       mConvertFn = &Packers::convert420PtoV210;
     else if (0 == mSrcFmtCode.compare("pgroup"))
       mConvertFn = &Packers::convertPGrouptoV210;
+    else {
+      std::string err = std::string("Unsupported conversion \'") + mSrcFmtCode.c_str() + "\' -> \'" + mDstFmtCode.c_str() + "\'";
+      Nan::ThrowError(err.c_str());
+    }
+  } else if (0 == mDstFmtCode.compare("GBRP16")) {
+    if ((0 == mSrcFmtCode.compare("BGR10-A")) || (0 == mSrcFmtCode.compare("BGR10-A-BS")))
+      mConvertFn = &Packers::convertBGR10AtoGBRP16;
     else {
       std::string err = std::string("Unsupported conversion \'") + mSrcFmtCode.c_str() + "\' -> \'" + mDstFmtCode.c_str() + "\'";
       Nan::ThrowError(err.c_str());
@@ -943,6 +982,46 @@ void Packers::convertV210toPGroup (const uint8_t *const srcBuf, uint8_t *const d
 
     srcLine += srcPitchBytes;
     dstLine += dstPitchBytes;
+  }
+}
+
+void Packers::convertBGR10AtoGBRP16 (const uint8_t *const srcBuf, uint8_t *const dstBuf) const {
+  bool doByteSwap = (mSrcFmtCode.find("BS") != std::string::npos);
+  uint32_t srcPitchBytes = mSrcWidth * 4;
+  uint32_t dstPitchBytes = mSrcWidth * 2;
+  uint32_t dstPlaneBytes = dstPitchBytes * mSrcHeight;
+  
+  const uint8_t *srcLine = srcBuf;
+  uint8_t *dstGLine = dstBuf;
+  uint8_t *dstBLine = dstBuf + dstPlaneBytes;
+  uint8_t *dstRLine = dstBuf + dstPlaneBytes * 2;
+
+  for (uint32_t y=0; y<mSrcHeight; ++y) {
+    const uint32_t *srcInts = (uint32_t *)srcLine;
+    uint16_t *dstGShorts = (uint16_t *)dstGLine;
+    uint16_t *dstBShorts = (uint16_t *)dstBLine;
+    uint16_t *dstRShorts = (uint16_t *)dstRLine;
+    
+    if (doByteSwap) {
+      for (uint32_t x=0; x<mSrcWidth; ++x) {
+        uint32_t s0 = *srcInts++;
+        *dstBShorts++ = ((s0 >> 4) & 0xf000) | ((s0 >> 20) & 0x0fc0);
+        *dstGShorts++ = ((s0 << 2) & 0xfc00) | ((s0 >> 14) & 0x03f0);
+        *dstRShorts++ = ((s0 << 8) & 0xff00) | ((s0 >> 8) & 0x00c0);
+      }
+    } else {
+      for (uint32_t x=0; x<mSrcWidth; ++x) {
+        uint32_t s0 = *srcInts++;
+        *dstBShorts++ = (s0 << 4) & 0xffc0;
+        *dstGShorts++ = (s0 >> 6) & 0xffc0;
+        *dstRShorts++ = (s0 >> 16) & 0xffc0;
+      }
+    }
+  
+    srcLine += srcPitchBytes;
+    dstGLine += dstPitchBytes;
+    dstBLine += dstPitchBytes;
+    dstRLine += dstPitchBytes;
   }
 }
 

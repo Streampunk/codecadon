@@ -29,8 +29,9 @@ ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std:
                                    const fXY &userScale, const fXY &userDstOffset)
   : mSwsContext(NULL),
     mSrcWidth(srcVidInfo->width()), mSrcHeight(srcVidInfo->height()), mSrcIlace(srcVidInfo->interlace()),
-    mSrcPixFmt(("RGBA8"==srcVidInfo->packing())?AV_PIX_FMT_RGBA:
-               (8==srcVidInfo->depth())?AV_PIX_FMT_YUV420P:AV_PIX_FMT_YUV422P10LE),
+    mSrcPixFmt((0==srcVidInfo->packing().compare("RGBA8"))?AV_PIX_FMT_RGBA
+               :((0==srcVidInfo->packing().compare("BGR10-A")) || (0==srcVidInfo->packing().compare("BGR10-A-BS")))?AV_PIX_FMT_GBRP16
+               :(8==srcVidInfo->depth())?AV_PIX_FMT_YUV420P:AV_PIX_FMT_YUV422P10LE),
     mDstWidth(dstVidInfo->width()), mDstHeight(dstVidInfo->height()), mDstIlace(dstVidInfo->interlace()),
     mDstPixFmt((8==dstVidInfo->depth())?AV_PIX_FMT_YUV420P:AV_PIX_FMT_YUV422P10LE),
     mUserScale(userScale), mUserDstOffset(userDstOffset), 
@@ -86,6 +87,11 @@ ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std:
  
   if (AV_PIX_FMT_RGBA==mSrcPixFmt) {
     mSrcLinesize[0] = mSrcWidth * 4;
+  } else if (AV_PIX_FMT_GBRP16==mSrcPixFmt) {
+    uint32_t srcPitch = mSrcWidth * 2;
+    mSrcLinesize[0] = srcPitch;
+    mSrcLinesize[1] = srcPitch;
+    mSrcLinesize[2] = srcPitch;
   } else {
     uint32_t srcLumaPitch = (AV_PIX_FMT_YUV420P==mSrcPixFmt) ? mSrcWidth : mSrcWidth * 2;
     uint32_t srcChromaPitch = srcLumaPitch / 2;
@@ -106,7 +112,10 @@ ScaleConverterFF::~ScaleConverterFF() {
 }
 
 std::string ScaleConverterFF::packingRequired() const {
-  return (AV_PIX_FMT_RGBA==mSrcPixFmt)?"RGBA8":(AV_PIX_FMT_YUV420P==mSrcPixFmt)?"420P":"YUV422P10";
+  return (AV_PIX_FMT_RGBA==mSrcPixFmt) ? "RGBA8"
+    : (AV_PIX_FMT_GBRP16==mSrcPixFmt) ? "GBRP16"
+    : (AV_PIX_FMT_YUV420P==mSrcPixFmt) ? "420P"
+      : "YUV422P10";
 }
 
 void ScaleConverterFF::scaleConvertField (uint8_t **srcData, uint8_t **dstData, uint32_t srcField, uint32_t dstField) {
@@ -135,6 +144,10 @@ void ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf, std::s
   if (AV_PIX_FMT_RGBA==mSrcPixFmt) {
     srcData[1] = NULL;
     srcData[2] = NULL;
+    srcData[3] = NULL;
+  } else if (AV_PIX_FMT_GBRP16==mSrcPixFmt) {
+    srcData[1] = (uint8_t *)(srcBuf->buf() + srcLumaBytes);;
+    srcData[2] = (uint8_t *)(srcBuf->buf() + srcLumaBytes * 2);;
     srcData[3] = NULL;
   } else {
     srcData[1] = (uint8_t *)(srcBuf->buf() + srcLumaBytes);

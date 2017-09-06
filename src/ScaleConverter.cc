@@ -129,15 +129,15 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
 
   mScaleConverterFF = std::make_shared<ScaleConverterFF>(mSrcVidInfo, mDstVidInfo, scale, dstOffset);
   mUnityPacking = (0==mSrcVidInfo->packing().compare(mScaleConverterFF->packingRequired()));
-  if (!mUnityPacking)
-    mPacker = std::make_shared<Packers>(mSrcVidInfo->width(), mSrcVidInfo->height(),
-                                        mSrcVidInfo->packing(), mScaleConverterFF->packingRequired());
-  std::string srcCol = mSrcVidInfo->packing().substr(0, 3);
-  bool srcIsRGB = ((0 == srcCol.compare("RGB")) || (0 == srcCol.compare("BGR")));
+
   mUnityScale = ((mSrcVidInfo->width() == mDstVidInfo->width()) &&
                  (mSrcVidInfo->height() == mDstVidInfo->height()) &&
                  (0==mSrcVidInfo->interlace().compare(mDstVidInfo->interlace())) &&
-                 !srcIsRGB); // Use scaler to do colourspace conversion!!
+                 (0==mDstVidInfo->packing().compare(mUnityPacking?mSrcVidInfo->packing():mScaleConverterFF->packingRequired()))); // Use scaler to do format/colourspace conversion
+
+  if (!mUnityPacking)
+    mPacker = std::make_shared<Packers>(mSrcVidInfo->width(), mSrcVidInfo->height(),
+                                        mSrcVidInfo->packing(), mUnityScale?mDstVidInfo->packing():mScaleConverterFF->packingRequired());
   mDstBytesReq = getFormatBytes(mDstVidInfo->packing(), mDstVidInfo->width(), mDstVidInfo->height());
 }
 

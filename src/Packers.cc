@@ -1006,7 +1006,7 @@ void Packers::convertBGR10AtoGBRP16 (const uint8_t *const srcBuf, uint8_t *const
       for (uint32_t x=0; x<mSrcWidth; ++x) {
         uint32_t s0 = *srcInts++;
         *dstBShorts++ = ((s0 >> 4) & 0xf000) | ((s0 >> 20) & 0x0fc0);
-        *dstGShorts++ = ((s0 << 2) & 0xfc00) | ((s0 >> 14) & 0x03f0);
+        *dstGShorts++ = ((s0 << 2) & 0xfc00) | ((s0 >> 14) & 0x03c0);
         *dstRShorts++ = ((s0 << 8) & 0xff00) | ((s0 >> 8) & 0x00c0);
       }
     } else {

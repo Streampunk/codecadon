@@ -98,11 +98,11 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
   }
   if (mDstVidInfo->packing().compare("420P") && mDstVidInfo->packing().compare("YUV422P10")) {
     std::string err = std::string("Unsupported destination packing type \'") + mDstVidInfo->packing() + "\'";
-    Nan::ThrowError(err.c_str());
+    return Nan::ThrowError(err.c_str());
   }
   if ((mSrcVidInfo->width() % 2) || (mDstVidInfo->width() % 2)) {
     std::string err = std::string("Width must be divisible by 2 - src ") + std::to_string(mSrcVidInfo->width()) + ", dst " + std::to_string(mDstVidInfo->width());
-    Nan::ThrowError(err.c_str());
+    return Nan::ThrowError(err.c_str());
   }
 
   Local<String> scaleStr = Nan::New<String>("scale").ToLocalChecked();
@@ -175,7 +175,7 @@ NAN_METHOD(ScaleConverter::ScaleConvert) {
   Local<Array> srcBufArray = Local<Array>::Cast(info[0]);
   Local<Object> dstBufObj = Local<Object>::Cast(info[1]);
   Local<Function> callback = Local<Function>::Cast(info[2]);
-
+  
   Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(0));
 
   ScaleConverter* obj = Nan::ObjectWrap::Unwrap<ScaleConverter>(info.Holder());
@@ -185,7 +185,7 @@ NAN_METHOD(ScaleConverter::ScaleConvert) {
 
   obj->mSrcFormatBytes = getFormatBytes(obj->mSrcVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height());
   if (obj->mSrcFormatBytes > (uint32_t)node::Buffer::Length(srcBufObj))
-    Nan::ThrowError("Insufficient source buffer for conversion\n");
+    return Nan::ThrowError("Insufficient source buffer for conversion");
 
   if (obj->mDstBytesReq > node::Buffer::Length(dstBufObj))
     return Nan::ThrowError("Insufficient destination buffer for specified format");
@@ -198,13 +198,13 @@ NAN_METHOD(ScaleConverter::ScaleConvert) {
     convertDstBuf = Memory::makeNew(getFormatBytes(obj->mScaleConverterFF->packingRequired(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height()));
     scaleSrcBuf = convertDstBuf;
     if (!convertDstBuf->buf())
-      Nan::ThrowError("Failed to allocate buffer for packer result");
+      return Nan::ThrowError("Failed to allocate buffer for packer result");
   }
 
   std::shared_ptr<iProcessData> scpd = 
     std::make_shared<ScaleConvertProcessData>(srcBufObj, dstBufObj, convertDstBuf, scaleSrcBuf);
   obj->mWorker->doFrame(scpd, obj, new Nan::Callback(callback));
-
+  
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));
 }
 

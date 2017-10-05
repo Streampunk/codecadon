@@ -44,7 +44,7 @@ private:
 class EssenceInfo : public Params {
 public:
   EssenceInfo(Local<Object> tags)
-    : Params(0==unpackStr(tags, "format", "video").compare("video")),
+    : mIsVideo(0==unpackStr(tags, "format", "video").compare("video")),
       mFormat(unpackStr(tags, "format", "video")),
       mEncodingName(unpackStr(tags, "encodingName", mIsVideo?"raw":"L16")), 
       mClockRate(unpackNum(tags, "clockRate", mIsVideo?90000:48000)),
@@ -55,10 +55,12 @@ public:
       mColorimetry(mIsVideo?unpackStr(tags, "colorimetry", "BT709-2"):""),
       mInterlace(mIsVideo?unpackBool(tags, "interlace", true)?"tff":"prog":""),
       mPacking(mIsVideo?unpackStr(tags, "packing", "pgroup"):""),
+      mHasAlpha(mIsVideo?unpackBool(tags, "hasAlpha", false):false),
       mChannels(mIsVideo?0:unpackNum(tags, "channels", 2))
   {}
   ~EssenceInfo() {}
 
+  bool isVideo() const  { return mIsVideo; }
   std::string format() const  { return mFormat; }
   std::string encodingName() const  { return mEncodingName; }
   uint32_t clockRate() const  { return mClockRate; }
@@ -69,18 +71,20 @@ public:
   std::string colorimetry() const  { return mColorimetry; }
   std::string interlace() const  { return mInterlace; }
   std::string packing() const  { return mPacking; }
+  bool hasAlpha() const  { return mHasAlpha; }
   uint32_t channels() const  { return mChannels; }
 
   std::string toString() const  { 
     std::stringstream ss;
     if (mIsVideo)
-      ss << "Video, " << mWidth << "x" << mHeight << ", " << (mInterlace.compare("prog")?"I":"P") << ", " << mPacking;
+      ss << "Video, " << mWidth << "x" << mHeight << ", " << (mInterlace.compare("prog")?"I":"P") << ", " << mPacking << (mHasAlpha?" with alpha":"");
     else 
       ss << "Audio, " << "Clock Rate " << mClockRate << ", Channels " << mChannels << ", Encoding " << mEncodingName;
     return ss.str();
   }
 
 private:
+  bool mIsVideo;
   std::string mFormat;
   std::string mEncodingName;
   uint32_t mClockRate;
@@ -91,6 +95,7 @@ private:
   std::string mColorimetry;
   std::string mInterlace;
   std::string mPacking;
+  bool mHasAlpha;
   uint32_t mChannels;
 };
 

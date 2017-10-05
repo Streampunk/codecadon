@@ -28,10 +28,10 @@
 
 namespace streampunk {
 
-uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t height) {
+uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t height, bool hasAlpha) {
   uint32_t fmtBytes = 0;
   if (0 == fmtCode.compare("420P")) {
-    fmtBytes = width * height * 3 / 2;
+    fmtBytes = width * height * (hasAlpha?5:3) / 2;
   }
   else if (0 == fmtCode.compare("pgroup")) {
     uint32_t pitchBytes = width * 5 / 2;
@@ -46,8 +46,7 @@ uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t hei
     fmtBytes = pitchBytes * height;
   }
   else if (0 == fmtCode.compare("YUV422P10")) {
-    uint32_t pitchBytes = width * 4;
-    fmtBytes = pitchBytes * height;
+    fmtBytes = width * height * 2 * (hasAlpha?3:2);
   }
   else if (0 == fmtCode.compare("RGBA8")) {
     uint32_t pitchBytes = width * 4;

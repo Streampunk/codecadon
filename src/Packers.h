@@ -60,7 +60,7 @@ private:
   mutable tConvertFn mConvertFn;
 };
 
-uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t height);
+uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t height, bool hasAlpha = false);
 void dumpPGroupRaw (const uint8_t *const pgbuf, uint32_t width, uint32_t numLines);
 void dump420P (const uint8_t *const buf, uint32_t width, uint32_t height, uint32_t numLines);
 

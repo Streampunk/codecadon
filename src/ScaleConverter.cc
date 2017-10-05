@@ -138,7 +138,7 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
   if (!mUnityPacking)
     mPacker = std::make_shared<Packers>(mSrcVidInfo->width(), mSrcVidInfo->height(),
                                         mSrcVidInfo->packing(), mUnityScale?mDstVidInfo->packing():mScaleConverterFF->packingRequired());
-  mDstBytesReq = getFormatBytes(mDstVidInfo->packing(), mDstVidInfo->width(), mDstVidInfo->height());
+  mDstBytesReq = getFormatBytes(mDstVidInfo->packing(), mDstVidInfo->width(), mDstVidInfo->height(), mDstVidInfo->hasAlpha());
 }
 
 NAN_METHOD(ScaleConverter::SetInfo) {

@@ -92,16 +92,16 @@ function makeYUV422P10Buf(width, height) {
 }
 
 function makeTags(width, height, packing, interlace) {
-  this.tags = [];
-  this.tags["format"] = [ "video" ];
-  this.tags["width"] = [ `${width}` ];
-  this.tags["height"] = [ `${height}` ];
-  this.tags["packing"] = [ packing ];
+  let tags = {};
+  tags.format = 'video';
+  tags.width = width;
+  tags.height = height;
+  tags.packing = packing;
   var depth = 8;
-  if ("420P" !== packing)
+  if ('420P' !== packing)
     depth = 10;
-  this.tags["depth"] = [ `${depth}` ];
-  this.tags["interlace"] = [ `${interlace}` ];
+  tags.depth = depth;
+  tags.interlace = interlace;
   return tags;
 }
 

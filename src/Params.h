@@ -23,48 +23,68 @@ using namespace v8;
 namespace streampunk {
 
 class Params {
-public:
-  bool isVideo() const  { return mIsVideo; } 
-
 protected:
-  const bool mIsVideo;
-
-  Params(bool isVideo) : mIsVideo(isVideo) {}
+  Params() {}
   virtual ~Params() {}
 
-  std::string unpackValue(Local<Object> tags, const std::string& key) {
+  Local<Value> getKey(Local<Object> tags, const std::string& key) {
+    Local<Value> val = Nan::Null();
     Local<String> keyStr = Nan::New<String>(key).ToLocalChecked();
-    if (!Nan::Has(tags, keyStr).FromJust())
-      return std::string();
-      
-    Local<Array> valueArray = Local<Array>::Cast(Nan::Get(tags, keyStr).ToLocalChecked());
+    if (Nan::Has(tags, keyStr).FromJust())
+      val = Nan::Get(tags, keyStr).ToLocalChecked();
+    return val;
+  }
+
+  std::string unpackValue(Local<Value> val) {
+    Local<Array> valueArray = Local<Array>::Cast(val);
     return *String::Utf8Value(valueArray->Get(0));
   }
 
   bool unpackBool(Local<Object> tags, const std::string& key, bool dflt) {
-    std::string val = unpackValue(tags, key);
     bool result = dflt;
-    if (!val.empty()) {
-      if ((0==val.compare("1")) || (0==val.compare("true")))
-        result = true;
-      else if ((0==val.compare("0")) || (0==val.compare("false")))
-        result = false;
+    Local<Value> val = getKey(tags, key);
+    if (Nan::Null() != val) {
+      if (val->IsArray()) {
+        std::string valStr = unpackValue(val);
+        if (!valStr.empty()) {
+          if ((0==valStr.compare("1")) || (0==valStr.compare("true")))
+            result = true;
+          else if ((0==valStr.compare("0")) || (0==valStr.compare("false")))
+            result = false;
+        }
+      } else
+        result = Nan::To<bool>(val).FromJust();
     }
     return result;
   }
 
   uint32_t unpackNum(Local<Object> tags, const std::string& key, uint32_t dflt) {
-    std::string val = unpackValue(tags, key);
-    return val.empty()?dflt:std::stoi(val);
+    uint32_t result = dflt;
+    Local<Value> val = getKey(tags, key);
+    if (Nan::Null() != val) {
+      if (val->IsArray()) {
+        std::string valStr = unpackValue(val);
+        result = valStr.empty()?dflt:std::stoi(valStr);
+      } else
+        result = Nan::To<uint32_t>(val).FromJust();
+    }
+    return result;
   } 
 
   std::string unpackStr(Local<Object> tags, const std::string& key, std::string dflt) {
-    std::string val = unpackValue(tags, key);
-    return val.empty()?dflt:val;
+    std::string result = dflt;
+    Local<Value> val = getKey(tags, key);
+    if (Nan::Null() != val) {
+      if (val->IsArray()) {
+        std::string valStr = unpackValue(val);
+        result = valStr.empty()?dflt:valStr;
+      } else
+        result = *String::Utf8Value(val);
+    }
+    return result;
   } 
 
 private:
-  Params();
   Params(const Params &);
 };
 

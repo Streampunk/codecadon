@@ -73,13 +73,13 @@ function makeYUV422P10Buf(width, height, wipeVal) {
 }
 
 function makeTags(width, height, packing, interlace) {
-  this.tags = [];
-  this.tags["format"] = [ "video" ];
-  this.tags["width"] = [ `${width}` ];
-  this.tags["height"] = [ `${height}` ];
-  this.tags["packing"] = [ packing ];
-  this.tags["interlace"] = [ `${interlace}` ];
-  return this.tags;
+  let tags = {};
+  tags.format = 'video';
+  tags.width = width;
+  tags.height = height;
+  tags.packing = packing;
+  tags.interlace = interlace;
+  return tags;
 }
 
 function stampTest(description, onErr, fn) {

@@ -27,7 +27,7 @@ namespace streampunk {
 class EncodeParams : public Params {
 public:
   EncodeParams(Local<Object> tags, bool isVideo)
-    : Params(isVideo),
+    : mIsVideo(isVideo),
       mBitrate(unpackNum(tags, "bitrate", mIsVideo?5000000:128000)),
       mGopFrames(unpackNum(tags, "gopFrames", mIsVideo?90:0))
   {}
@@ -46,6 +46,7 @@ public:
   }
 
 private:
+  bool mIsVideo;
   uint32_t mBitrate;
   uint32_t mGopFrames;
 };

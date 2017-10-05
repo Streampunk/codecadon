@@ -99,8 +99,32 @@ private:
   float mPressure;
 };
 
+class StampProcessData : public iProcessData {
+public:
+  StampProcessData (Local<Array> srcBufArray, Local<Object> dstBufObj)
+    : mPersistentDstBuf(new Persist(dstBufObj)),
+      mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj)))
+  { 
+    for (uint32_t i=0; i<srcBufArray->Length(); ++i) {
+      Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(i));
+      mPersistentSrcBufs.push_back(std::shared_ptr<Persist>(new Persist(srcBufObj)));
+      mSrcBufs.push_back(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj)));
+    }
+  }
+  ~StampProcessData() { }
+  
+  std::vector<std::shared_ptr<Memory> > srcBufs() const { return mSrcBufs; }
+  std::shared_ptr<Memory> dstBuf() const { return mDstBuf; }
+
+private:
+  std::vector<std::shared_ptr<Persist> > mPersistentSrcBufs;
+  std::unique_ptr<Persist> mPersistentDstBuf;
+  std::vector<std::shared_ptr<Memory> > mSrcBufs;
+  std::shared_ptr<Memory> mDstBuf;
+};
+
 Stamper::Stamper(Nan::Callback *callback) 
-  : mWorker(new MyWorker(callback)), mSetInfoOK(false), mSrcFormatBytes(0), mDstBytesReq(0) {
+  : mWorker(new MyWorker(callback)), mSetInfoOK(false), mDstBytesReq(0) {
   AsyncQueueWorker(mWorker);
 }
 Stamper::~Stamper() {}
@@ -108,7 +132,7 @@ Stamper::~Stamper() {}
 // iProcess
 uint32_t Stamper::processFrame (std::shared_ptr<iProcessData> processData) {
   Timer t;
-  std::string func("stamp");
+  std::string func("null");
   std::shared_ptr<WipeProcessData> wpd = std::dynamic_pointer_cast<WipeProcessData>(processData);
   if (wpd) {
     func = "wipe";
@@ -127,12 +151,19 @@ uint32_t Stamper::processFrame (std::shared_ptr<iProcessData> processData) {
     doMix(mpd);
   }
 
+  std::shared_ptr<StampProcessData> spd = std::dynamic_pointer_cast<StampProcessData>(processData);
+  if (spd) {
+    func = "stamp";
+    doStamp(spd);
+  }
+
   printf("%s: %.2fms\n", func.c_str(), t.delta());
 
   return mDstBytesReq;
 }
 
-void Stamper::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
+void Stamper::doSetInfo(Local<Array> srcTagsArray, Local<Object> dstTags) {
+  Local<Object> srcTags = Local<Object>::Cast(srcTagsArray->Get(0));
   mSrcVidInfo = std::make_shared<EssenceInfo>(srcTags); 
   printf ("Stamper SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
   mDstVidInfo = std::make_shared<EssenceInfo>(dstTags); 
@@ -297,9 +328,9 @@ void Stamper::doMix(std::shared_ptr<MixProcessData> mpd) {
   dstLine[0] = mpd->dstBuf()->buf();
   dstLine[1] = dstLine[0] + dstLumaPlaneBytes;
   dstLine[2] = dstLine[1] + dstChromaPlaneBytes;
-
+  
   float pressure = mpd->pressure();
-
+        
   for (uint32_t p=0; p<3; ++p) {
     uint32_t numPixels = (0==p) ? mSrcVidInfo->width() : mSrcVidInfo->width() / 2;
     for (uint32_t y=0; y<mSrcVidInfo->height(); ++y) {
@@ -331,16 +362,127 @@ void Stamper::doMix(std::shared_ptr<MixProcessData> mpd) {
   }
 }
 
+void Stamper::doStamp(std::shared_ptr<StampProcessData> spd) {
+  uint32_t bytesPerPixel = 2;
+  uint32_t lumaLinesPerChromaLine = 1;
+  if (0 == mSrcVidInfo->packing().compare("420P")) {
+    bytesPerPixel = 1;
+    lumaLinesPerChromaLine = 2;
+  }
+
+  uint32_t srcLumaPitchBytes = mSrcVidInfo->width() * bytesPerPixel;
+  uint32_t srcChromaPitchBytes = srcLumaPitchBytes / 2;
+  uint32_t srcLumaPlaneBytes = srcLumaPitchBytes * mSrcVidInfo->height();
+  uint32_t srcChromaPlaneBytes = srcChromaPitchBytes * mSrcVidInfo->height() / lumaLinesPerChromaLine;
+
+  uint32_t dstLumaPitchBytes = mDstVidInfo->width() * bytesPerPixel;
+  uint32_t dstChromaPitchBytes = dstLumaPitchBytes / 2;
+  uint32_t dstLumaPlaneBytes = dstLumaPitchBytes * mDstVidInfo->height();
+  uint32_t dstChromaPlaneBytes = dstChromaPitchBytes * mDstVidInfo->height() / lumaLinesPerChromaLine;
+
+  const uint8_t *srcLine[2][4];
+  for (uint32_t s=0; s<2; ++s) { 
+    srcLine[s][0] = spd->srcBufs()[s]->buf();
+    srcLine[s][1] = srcLine[s][0] + srcLumaPlaneBytes;
+    srcLine[s][2] = srcLine[s][1] + srcChromaPlaneBytes;
+    srcLine[s][3] = srcLine[s][2] + srcChromaPlaneBytes;
+  }
+
+  uint8_t *dstLine[3];
+  dstLine[0] = spd->dstBuf()->buf();
+  dstLine[1] = dstLine[0] + dstLumaPlaneBytes;
+  dstLine[2] = dstLine[1] + dstChromaPlaneBytes;
+  
+  for (uint32_t y=0; y<mSrcVidInfo->height(); ++y) {
+    bool evenLine = (y & 1) == 0;
+    if (1==bytesPerPixel) {
+      const uint8_t *srcAY = srcLine[0][0];
+      const uint8_t *srcAU = srcLine[0][1];
+      const uint8_t *srcAV = srcLine[0][2];
+      const uint8_t *srcAA = srcLine[0][3];
+      const uint8_t *srcBY = srcLine[1][0];
+      const uint8_t *srcBU = srcLine[1][1];
+      const uint8_t *srcBV = srcLine[1][2];
+      const uint8_t *srcBA = srcLine[1][3];
+      uint8_t *dstY = dstLine[0];
+      uint8_t *dstU = dstLine[1];
+      uint8_t *dstV = dstLine[2];
+      for (uint32_t x=0; x<mSrcVidInfo->width(); x+=2) {
+        float p0 = (float)*srcAA++/255.0f;
+        float p1 = (float)*srcAA++/255.0f;
+        *dstY++ = uint8_t((float)*srcAY++ * p0 + (float)*srcBY++ * (1.0f - p0));
+        *dstY++ = uint8_t((float)*srcAY++ * p1 + (float)*srcBY++ * (1.0f - p1));
+        if (evenLine) {
+          *dstU++ = uint8_t((float)*srcAU++ * p0 + (float)*srcBU++ * (1.0f - p0));
+          *dstV++ = uint8_t((float)*srcAV++ * p0 + (float)*srcBV++ * (1.0f - p0));
+        }
+      }
+
+      for (uint32_t s=0; s<2; ++s) { 
+        srcLine[s][0] += srcLumaPitchBytes;
+        if (!evenLine) {
+          srcLine[s][1] += srcChromaPitchBytes;
+          srcLine[s][2] += srcChromaPitchBytes;
+        }
+        srcLine[s][3] += srcLumaPitchBytes;
+      }
+
+      dstLine[0] += dstLumaPitchBytes;
+      if (!evenLine) {
+        dstLine[1] += dstChromaPitchBytes;
+        dstLine[2] += dstChromaPitchBytes;
+      }
+    } else {
+      const uint16_t *srcAY = (const uint16_t *)srcLine[0][0];
+      const uint16_t *srcAU = (const uint16_t *)srcLine[0][1];
+      const uint16_t *srcAV = (const uint16_t *)srcLine[0][2];
+      const uint16_t *srcAA = (const uint16_t *)srcLine[0][3];
+      const uint16_t *srcBY = (const uint16_t *)srcLine[1][0];
+      const uint16_t *srcBU = (const uint16_t *)srcLine[1][1];
+      const uint16_t *srcBV = (const uint16_t *)srcLine[1][2];
+      const uint16_t *srcBA = (const uint16_t *)srcLine[1][3];
+      uint16_t *dstY = (uint16_t *)dstLine[0];
+      uint16_t *dstU = (uint16_t *)dstLine[1];
+      uint16_t *dstV = (uint16_t *)dstLine[2];
+      for (uint32_t x=0; x<mSrcVidInfo->width(); x+=2) {
+        float p0 = (float)*srcAA++/1023.0f;
+        float p1 = (float)*srcAA++/1023.0f;
+        *dstY++ = uint16_t((float)*srcAY++ * p0 + (float)*srcBY++ * (1.0f - p0));
+        *dstY++ = uint16_t((float)*srcAY++ * p1 + (float)*srcBY++ * (1.0f - p1));
+        *dstU++ = uint16_t((float)*srcAU++ * p0 + (float)*srcBU++ * (1.0f - p0));
+        *dstV++ = uint16_t((float)*srcAV++ * p0 + (float)*srcBV++ * (1.0f - p0));
+      }
+
+      for (uint32_t s=0; s<2; ++s) { 
+        srcLine[s][0] += srcLumaPitchBytes;
+        srcLine[s][1] += srcChromaPitchBytes;
+        srcLine[s][2] += srcChromaPitchBytes;
+        srcLine[s][3] += srcLumaPitchBytes;
+      }
+
+      dstLine[0] += dstLumaPitchBytes;
+      dstLine[1] += dstChromaPitchBytes;
+      dstLine[2] += dstChromaPitchBytes;
+    }
+  }
+}
+
 NAN_METHOD(Stamper::SetInfo) {
   if (info.Length() != 2)
     return Nan::ThrowError("Stamper SetInfo expects 2 arguments");
-  Local<Object> srcTags = Local<Object>::Cast(info[0]);
+
+  if (!info[0]->IsArray())
+    return Nan::ThrowError("Stamper SetInfo requires a valid srcTags array as the first parameter");
+  if (!info[1]->IsObject())
+    return Nan::ThrowError("Stamper SetInfo requires a valid dstTags object as the second parameter");
+    
+  Local<Array> srcTagsArray = Local<Array>::Cast(info[0]);
   Local<Object> dstTags = Local<Object>::Cast(info[1]);
 
   Stamper* obj = Nan::ObjectWrap::Unwrap<Stamper>(info.Holder());
 
   Nan::TryCatch try_catch;
-  obj->doSetInfo(srcTags, dstTags);
+  obj->doSetInfo(srcTagsArray, dstTags);
   if (try_catch.HasCaught()) {
     obj->mSetInfoOK = false;
     try_catch.ReThrow();
@@ -420,8 +562,8 @@ NAN_METHOD(Stamper::Copy) {
   if (!obj->mSetInfoOK)
     return Nan::ThrowError("Copy called with incorrect setup parameters");
 
-  obj->mSrcFormatBytes = getFormatBytes(obj->mSrcVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height());
-  if (obj->mSrcFormatBytes > (uint32_t)node::Buffer::Length(srcBufObj))
+  uint32_t srcFormatBytes = getFormatBytes(obj->mSrcVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height());
+  if (srcFormatBytes > (uint32_t)node::Buffer::Length(srcBufObj))
     Nan::ThrowError("Insufficient source buffer for Copy\n");
 
   if (obj->mDstBytesReq > node::Buffer::Length(dstBufObj))
@@ -462,10 +604,10 @@ NAN_METHOD(Stamper::Mix) {
   if (!obj->mSetInfoOK)
     return Nan::ThrowError("Mix called with incorrect setup parameters");
 
-  obj->mSrcFormatBytes = getFormatBytes(obj->mSrcVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height());
+  uint32_t srcFormatBytes = getFormatBytes(obj->mSrcVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height());
   for (uint32_t i=0; i<srcBufArray->Length(); ++i) {
     Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(i));
-    if (obj->mSrcFormatBytes > (uint32_t)node::Buffer::Length(srcBufObj))
+    if (srcFormatBytes > (uint32_t)node::Buffer::Length(srcBufObj))
       Nan::ThrowError("Insufficient source buffer for Mix\n");
   }
 
@@ -481,6 +623,48 @@ NAN_METHOD(Stamper::Mix) {
   std::shared_ptr<iProcessData> mpd = 
     std::make_shared<MixProcessData>(srcBufArray, dstBufObj, pressure);
   obj->mWorker->doFrame(mpd, obj, new Nan::Callback(callback));
+
+  info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));
+}
+
+NAN_METHOD(Stamper::Stamp) {
+  if (info.Length() != 4)
+    return Nan::ThrowError("Stamper Stamp expects 4 arguments");
+  if (!info[0]->IsArray())
+    return Nan::ThrowError("Stamper Stamp requires a valid source buffer array as the first parameter");
+  if (!info[1]->IsObject())
+    return Nan::ThrowError("Stamper Stamp requires a valid destination buffer as the second parameter");
+  if (!info[2]->IsObject())
+    return Nan::ThrowError("Stamper Stamp requires a valid params object as the third parameter");
+  if (!info[3]->IsFunction())
+    return Nan::ThrowError("Stamper Stamp requires a valid callback as the fourth parameter");
+
+  Local<Array> srcBufArray = Local<Array>::Cast(info[0]);
+  Local<Object> dstBufObj = Local<Object>::Cast(info[1]);
+  Local<Object> paramTags = Local<Object>::Cast(info[2]);
+  Local<Function> callback = Local<Function>::Cast(info[3]);
+
+  Stamper* obj = Nan::ObjectWrap::Unwrap<Stamper>(info.Holder());
+
+  if (!obj->mSetInfoOK)
+    return Nan::ThrowError("Stamp called with incorrect setup parameters");
+
+  if (!obj->mSrcVidInfo->hasAlpha())
+    return Nan::ThrowError("Stamp called with source buffer having no alpha channel");
+
+  for (uint32_t i=0; i<srcBufArray->Length(); ++i) {
+    uint32_t srcFormatBytes = getFormatBytes(obj->mSrcVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height(), 0==i);
+    Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(i));
+    if (srcFormatBytes > (uint32_t)node::Buffer::Length(srcBufObj))
+      Nan::ThrowError("Insufficient source buffer for Stamp\n");
+  }
+
+  if (obj->mDstBytesReq > node::Buffer::Length(dstBufObj))
+    return Nan::ThrowError("Insufficient destination buffer for specified format");
+
+  std::shared_ptr<iProcessData> spd = 
+    std::make_shared<StampProcessData>(srcBufArray, dstBufObj);
+  obj->mWorker->doFrame(spd, obj, new Nan::Callback(callback));
 
   info.GetReturnValue().Set(Nan::New(obj->mWorker->numQueued()));
 }
@@ -508,6 +692,7 @@ NAN_MODULE_INIT(Stamper::Init) {
   SetPrototypeMethod(tpl, "wipe", Wipe);
   SetPrototypeMethod(tpl, "copy", Copy);
   SetPrototypeMethod(tpl, "mix", Mix);
+  SetPrototypeMethod(tpl, "stamp", Stamp);
   SetPrototypeMethod(tpl, "quit", Quit);
 
   constructor().Reset(Nan::GetFunction(tpl).ToLocalChecked());

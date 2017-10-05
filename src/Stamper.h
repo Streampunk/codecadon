@@ -26,6 +26,7 @@ class EssenceInfo;
 class WipeProcessData;
 class CopyProcessData;
 class MixProcessData;
+class StampProcessData;
 
 class Stamper : public Nan::ObjectWrap, public iProcess {
 public:
@@ -38,11 +39,12 @@ private:
   explicit Stamper(Nan::Callback *callback);
   ~Stamper();
 
-  void doSetInfo(v8::Local<v8::Object> srcTags, v8::Local<v8::Object> dstTags);
+  void doSetInfo(v8::Local<v8::Array> srcTags, v8::Local<v8::Object> dstTags);
   void doWipe(std::shared_ptr<WipeProcessData> wpd);
   void doCopy(std::shared_ptr<CopyProcessData> cpd);
-  void doMix(std::shared_ptr<MixProcessData> spd);
-
+  void doMix(std::shared_ptr<MixProcessData> mpd);
+  void doStamp(std::shared_ptr<StampProcessData> spd);
+  
   static NAN_METHOD(New) {
     if (info.IsConstructCall()) {
       if (!((info.Length() == 1) && (info[0]->IsFunction())))
@@ -68,11 +70,11 @@ private:
   static NAN_METHOD(Wipe);
   static NAN_METHOD(Copy);
   static NAN_METHOD(Mix);
+  static NAN_METHOD(Stamp);
   static NAN_METHOD(Quit);
 
   MyWorker *mWorker;
   bool mSetInfoOK;
-  uint32_t mSrcFormatBytes;
   uint32_t mDstBytesReq;
   std::shared_ptr<EssenceInfo> mSrcVidInfo;
   std::shared_ptr<EssenceInfo> mDstVidInfo;

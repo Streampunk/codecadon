@@ -60,6 +60,44 @@ Concater.prototype.quit = function(cb) {
 }
 
 
+function Flipper(cb) {
+  this.flipperAdon = new codecAdon.Flipper(cb);
+  EventEmitter.call(this);
+}
+
+util.inherits(Flipper, EventEmitter);
+
+Flipper.prototype.setInfo = function(srcTags, flip) {
+  try {
+    return this.flipperAdon.setInfo(srcTags, flip);
+  } catch (err) {
+    this.emit('error', err);
+    return 0;
+  }
+}
+
+Flipper.prototype.flip = function(srcBufArray, dstBuf, cb) {
+  try {
+    var numQueued = this.flipperAdon.flip(srcBufArray, dstBuf, (err, resultBytes) => {
+      cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
+    });
+    return numQueued;
+  } catch (err) {
+    cb(err);
+  }
+}
+
+Flipper.prototype.quit = function(cb) {
+  try {
+    this.flipperAdon.quit((err, resultBytes) => {
+      cb(err, resultBytes);
+    });
+  } catch (err) {
+    this.emit('error', err);
+  }
+}
+
+
 function Packer(cb) {
   this.packerAdon = new codecAdon.Packer(cb);
   EventEmitter.call(this);
@@ -224,8 +262,14 @@ function Stamper(cb) {
 util.inherits(Stamper, EventEmitter);
 
 Stamper.prototype.setInfo = function(srcTags, dstTags) {
+  var srcTagsArray = [];
+  if (Array.isArray(srcTags))
+    srcTagsArray = srcTags;
+  else
+    srcTagsArray = [ srcTags ];
+
   try {
-    return this.stamperAdon.setInfo(srcTags, dstTags);
+    return this.stamperAdon.setInfo(srcTagsArray, dstTags);
   } catch (err) {
     this.emit('error', err);
     return 0;
@@ -265,6 +309,17 @@ Stamper.prototype.mix = function(srcBufArray, dstBuf, paramTags, cb) {
   }
 }
 
+Stamper.prototype.stamp = function(srcBufArray, dstBuf, paramTags, cb) {
+  try {
+    var numQueued = this.stamperAdon.stamp(srcBufArray, dstBuf, paramTags, (err, resultBytes) => {
+      cb(err, resultBytes?dstBuf.slice(0,resultBytes):null);
+    });
+    return numQueued;
+  } catch (err) {
+    cb(err);
+  }
+}
+
 Stamper.prototype.quit = function(cb) {
   try {
     this.stamperAdon.quit((err, resultBytes) => {
@@ -278,6 +333,7 @@ Stamper.prototype.quit = function(cb) {
 
 var codecadon = {
    Concater : Concater,
+   Flipper : Flipper,
    Packer : Packer,
    ScaleConverter : ScaleConverter,
    Decoder : Decoder,

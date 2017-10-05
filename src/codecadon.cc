@@ -15,6 +15,7 @@
 
 #include <nan.h>
 #include "Concater.h"
+#include "Flipper.h"
 #include "Packer.h"
 #include "ScaleConverter.h"
 #include "Decoder.h"
@@ -25,6 +26,7 @@ using namespace v8;
 
 NAN_MODULE_INIT(Init) {
   streampunk::Concater::Init(target);
+  streampunk::Flipper::Init(target);
   streampunk::Packer::Init(target);
   streampunk::ScaleConverter::Init(target);
   streampunk::Decoder::Init(target);

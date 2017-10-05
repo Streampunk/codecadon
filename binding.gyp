@@ -4,6 +4,7 @@
       "target_name": "codecadon",
       "sources": [ "src/codecadon.cc",
                    "src/Concater.cc",
+                   "src/Flipper.cc",
                    "src/Packer.cc",
                    "src/ScaleConverter.cc",
                    "src/Decoder.cc",

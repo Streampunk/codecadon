@@ -655,8 +655,10 @@ void Packers::convertYUV422P10to420P (const uint8_t *const srcBuf, uint8_t *cons
         for (uint32_t x=0; x < mSrcWidth / 2; ++x)
           *dstC++ = (*srcC++ & 0x3fc) >> 2;
       } else {
-        for (uint32_t x=0; x < mSrcWidth / 2; ++x)
-          *dstC++ = (((*srcC++ & 0x3fc) >> 2) + *dstC) >> 1;
+        for (uint32_t x=0; x < mSrcWidth / 2; ++x) {
+          uint8_t chr = *dstC;
+          *dstC++ = (((*srcC++ & 0x3fc) >> 2) + chr) >> 1;
+        }
       }
 
       srcLine[p] += (0==p) ? srcLumaPitchBytes : srcChromaPitchBytes;

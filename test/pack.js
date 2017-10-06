@@ -417,13 +417,13 @@ packTest('Performing packing UYVY10 to 420P',
     });
   });
 
-  packTest('Performing packing YUV422P10 to 420P',
+packTest('Performing packing YUV422P10 to 420P',
   function (t, err) {
     t.notOk(err, 'no error expected');
   }, 
   function (t, packer, done) {
-    var width = 1280;
-    var height = 720;
+    var width = 8;
+    var height = 2;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
     var dstTags = makeTags(width, height, '420P', 0);
     var dstBufLen = packer.setInfo(srcTags, dstTags);

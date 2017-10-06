@@ -403,7 +403,6 @@ void Stamper::doStamp(std::shared_ptr<StampProcessData> spd) {
       const uint8_t *srcBY = srcLine[1][0];
       const uint8_t *srcBU = srcLine[1][1];
       const uint8_t *srcBV = srcLine[1][2];
-      const uint8_t *srcBA = srcLine[1][3];
       uint8_t *dstY = dstLine[0];
       uint8_t *dstU = dstLine[1];
       uint8_t *dstV = dstLine[2];
@@ -440,7 +439,6 @@ void Stamper::doStamp(std::shared_ptr<StampProcessData> spd) {
       const uint16_t *srcBY = (const uint16_t *)srcLine[1][0];
       const uint16_t *srcBU = (const uint16_t *)srcLine[1][1];
       const uint16_t *srcBV = (const uint16_t *)srcLine[1][2];
-      const uint16_t *srcBA = (const uint16_t *)srcLine[1][3];
       uint16_t *dstY = (uint16_t *)dstLine[0];
       uint16_t *dstU = (uint16_t *)dstLine[1];
       uint16_t *dstV = (uint16_t *)dstLine[2];
@@ -641,7 +639,7 @@ NAN_METHOD(Stamper::Stamp) {
 
   Local<Array> srcBufArray = Local<Array>::Cast(info[0]);
   Local<Object> dstBufObj = Local<Object>::Cast(info[1]);
-  Local<Object> paramTags = Local<Object>::Cast(info[2]);
+  // Local<Object> paramTags = Local<Object>::Cast(info[2]);
   Local<Function> callback = Local<Function>::Cast(info[3]);
 
   Stamper* obj = Nan::ObjectWrap::Unwrap<Stamper>(info.Holder());

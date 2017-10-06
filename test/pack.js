@@ -417,6 +417,29 @@ packTest('Performing packing UYVY10 to 420P',
     });
   });
 
+  packTest('Performing packing YUV422P10 to 420P',
+  function (t, err) {
+    t.notOk(err, 'no error expected');
+  }, 
+  function (t, packer, done) {
+    var width = 1280;
+    var height = 720;
+    var srcTags = makeTags(width, height, 'YUV422P10', 0);
+    var dstTags = makeTags(width, height, '420P', 0);
+    var dstBufLen = packer.setInfo(srcTags, dstTags);
+
+    var bufArray = new Array(1);
+    var srcBuf = makeYUV422P10Buf(width, height);
+    bufArray[0] = srcBuf;
+    var dstBuf = Buffer.alloc(dstBufLen);
+    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+      t.notOk(err, 'no error expected');
+      var testDstBuf = make420PBuf(width, height);
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      done();
+    });
+  });
+
 packTest('Performing packing YUV422P10 to pgroup',
   function (t, err) {
     t.notOk(err, 'no error expected');

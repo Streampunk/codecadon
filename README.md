@@ -1,4 +1,6 @@
 [![CircleCI](https://circleci.com/gh/Streampunk/codecadon.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/Streampunk/codecadon)
+[![npm version](https://badge.fury.io/js/codecadon.svg)](https://badge.fury.io/js/codecadon)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 # Codecadon
 
 Codecadon is a [Node.js](http://nodejs.org/) [addon](http://nodejs.org/api/addons.html) using Javascript and C++ to implement async processing for media encoding, decoding and processing.
@@ -8,41 +10,57 @@ The implementation is designed to support the [dynamorse](http://github.com/Stre
 Support has been added for building codecadon for the Raspberry Pi armhf platforms, although do not expect anything other than relatively poor performance at this stage.
 
 ## Installation
+[![NPM](https://nodei.co/npm/codecadon.png?downloads=true)](https://www.npmjs.com/package/codecadon)
 
 Install [Node.js](http://nodejs.org/) for your platform. This software has been developed against the long term stable (LTS) release.
 
-Codecadon is designed to be `require`d to use from your own application to provide async processing.
+Codecadon is designed to be `require`d to use from your own application to provide async processing. Install in your project folder with the --save option to add codecadon to the dependencies list:
 
     npm install --save codecadon
 
 Node.js addons use [libuv](http://libuv.org/) which by default supports up to 4 async threads in a threadpool for activities such as file I/O. These same threads are used by codecadon and if you wish to use a number of the functions in one Node.js process then you will need to set the environment variable UV_THREADPOOL_SIZE to a suitable number before the first use of the libuv threadpool.
 
+Example shell commands to set this variable on different platforms are:
+
+Windows:
+
+    set UV_THREADPOOL_SIZE=16
+
+Linux/Mac/Raspberry Pi:
+
+    export UV_THREADPOOL_SIZE=16
+
 ## Using codecadon
 
-To use codecadon in your own application, `require` the module then create and use workers as required.  The processing functions follow a standard pattern as shown in the example code below.
+To use codecadon in your own application, `require` the module then create and use workers as required.  The processing functions follow a standard pattern as shown in the encoder example code below.
 
 ```javascript
-var codecadon = require('codecadon');
-var fn = new codecadon.fn(params);
+let codecadon = require('codecadon');
 
-fn.on('exit', function() {
-  fn.finish();
+let encoder = new codecadon.Encoder(() => {
+  // encoder has successfully exited
 });
-fn.on('error', function(err) {
-// handle error
-});
-
-// start the processing thread
-fn.start();
-
-// async request for processing to be done
-fn.doFn(params, function(err, result) {
+encoder.on('error', err => {
+  // handle error
 });
 
-// async request for the processing thread to quit
-fn.quit(function() {
+// send the parameters for the function (these differ by function), return value is suggested result buffer size
+let dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
+
+// async request for processing to be done.
+encoder.encode(srcBuf, Buffer.alloc(dstBufLen), (err, result) => {
+  if (err) {
+    // handle error
+  } else if (result) {
+    // result is a JS buffer containing the encoded data. Note it may be a different size to dstBuf
+  }
+});
+
+// async request for the processing thread to quit when it has finished the latest request
+fn.quit(() => {
 });
 ```
+
 ## Status, support and further development
 
 There is currently a limited set of video packing formats and codecs supported.  There has been no attempt made to tune encoder parameters for performance or quality.

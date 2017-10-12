@@ -57,7 +57,7 @@ encoder.encode(srcBuf, Buffer.alloc(dstBufLen), (err, result) => {
 });
 
 // async request for the processing thread to quit when it has finished the latest request
-fn.quit(() => {
+encoder.quit(() => {
 });
 ```
 

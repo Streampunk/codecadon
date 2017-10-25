@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "install": "node-gyp rebuild",
-    "test": "tape test/*.js"
+    "test": "tape test/*.js",
+    "lint": "eslint **/*.js",
+    "lint-html": "eslint **/*.js -f html -o ./reports/lint-results.html",
+    "lint-fix": "eslint --fix **/*.js"
   },
   "repository": {
     "type": "git",
@@ -17,7 +20,8 @@
   },
   "gypfile": true,
   "devDependencies": {
-    "tape": "^4.6.3"
+    "eslint": "^4.9.0",
+    "tape": "^4.8.0"
   },
   "author": "Streampunk Media Ltd",
   "license": "Apache-2.0",

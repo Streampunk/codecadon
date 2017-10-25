@@ -83,25 +83,25 @@ function makeTags(width, height, packing, interlace) {
 }
 
 function stampTest(description, onErr, fn) {
-  test(description, function (t) {
-    var stamper = new codecadon.Stamper(function() {
+  test(description, (t) => {
+    var stamper = new codecadon.Stamper((() => {
       t.end();
-    });
-    stamper.on('error', function(err) {
+    }));
+    stamper.on('error', (err) => {
       onErr(t, err);
     });
 
-    fn(t, stamper, function() {
-      stamper.quit(function(err, result) {});
+    fn(t, stamper, () => {
+      stamper.quit(() => {});
     });
   });
-};
+}
 
 stampTest('Starting up a stamper', 
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, stamper, done) {
+  (t, stamper, done) => {
     var dstWidth = 1920;
     var dstHeight = 1080;
     var srcTags = makeTags(1280, 720, '420P', 0);
@@ -114,10 +114,10 @@ stampTest('Starting up a stamper',
   });
 
 stampTest('Performing wipe of 420P',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, stamper, done) {
+  (t, stamper, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, '420P', 0);
@@ -126,19 +126,19 @@ stampTest('Performing wipe of 420P',
     var paramTags = { wipeRect:[0,0,1280,720], wipeCol:[1.0,0.0,0.0] };
 
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = stamper.wipe(dstBuf, paramTags, function(err, result) {
+    stamper.wipe(dstBuf, paramTags, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = make420PBuf(width, height, { y:235, cb:128, cr:128 });
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');
       done();
     });
   });
 
 stampTest('Performing wipe of YUV422P10',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, stamper, done) {
+  (t, stamper, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
@@ -147,19 +147,19 @@ stampTest('Performing wipe of YUV422P10',
     var paramTags = { wipeRect:[0,0,1280,720], wipeCol:[1.0,0.0,0.0] };
 
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = stamper.wipe(dstBuf, paramTags, function(err, result) {
+    stamper.wipe(dstBuf, paramTags, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeYUV422P10Buf(width, height, { y:940, cb:512, cr:512 });
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');
       done();
     });
   });
 
 stampTest('Performing copy of 420P',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, stamper, done) {
+  (t, stamper, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, '420P', 0);
@@ -171,19 +171,19 @@ stampTest('Performing copy of 420P',
     var srcBuf = make420PBuf(width, height, { y:16, cb:128, cr:128 });
     srcBufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = stamper.copy(srcBufArray, dstBuf, paramTags, function(err, result) {
+    stamper.copy(srcBufArray, dstBuf, paramTags, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = make420PBuf(width, height, { y:16, cb:128, cr:128 });
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');
       done();
     });
   });
 
 stampTest('Performing copy of YUV422P10',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, stamper, done) {
+  (t, stamper, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
@@ -195,19 +195,19 @@ stampTest('Performing copy of YUV422P10',
     var srcBuf = makeYUV422P10Buf(width, height, { y:64, cb:512, cr:512 });
     srcBufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = stamper.copy(srcBufArray, dstBuf, paramTags, function(err, result) {
+    stamper.copy(srcBufArray, dstBuf, paramTags, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeYUV422P10Buf(width, height, { y:64, cb:512, cr:512 });
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');
       done();
     });
   });
 
 stampTest('Performing mix of 420P',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, stamper, done) {
+  (t, stamper, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, '420P', 0);
@@ -221,19 +221,19 @@ stampTest('Performing mix of 420P',
     srcBufArray[0] = srcBufA;
     srcBufArray[1] = srcBufB;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = stamper.mix(srcBufArray, dstBuf, paramTags, function(err, result) {
+    stamper.mix(srcBufArray, dstBuf, paramTags, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = make420PBuf(width, height, { y:128, cb:128, cr:128 });
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');
       done();
     });
   });
 
 stampTest('Performing mix of YUV422P10',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, stamper, done) {
+  (t, stamper, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
@@ -247,10 +247,10 @@ stampTest('Performing mix of YUV422P10',
     srcBufArray[0] = srcBufA;
     srcBufArray[1] = srcBufB;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = stamper.mix(srcBufArray, dstBuf, paramTags, function(err, result) {
+    stamper.mix(srcBufArray, dstBuf, paramTags, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeYUV422P10Buf(width, height, { y:512, cb:512, cr:512 });
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');
       done();
     });
   });

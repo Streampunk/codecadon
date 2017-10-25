@@ -150,55 +150,55 @@ function makeTags(width, height, packing, interlace) {
 }
 
 function packTest(description, onErr, fn) {
-  test(description, function (t) {
-    var packer = new codecadon.Packer(function() {
+  test(description, (t) => {
+    var packer = new codecadon.Packer((() => {
       t.end();
-    });
-    packer.on('error', function(err) {
+    }));
+    packer.on('error', (err) => {
       onErr(t, err);
     });
 
-    fn(t, packer, function() {
-      packer.quit(function(err, result) {});
+    fn(t, packer, () => {
+      packer.quit(() => {});
     });
   });
-};
+}
 
-function badDims() {
+function badDims(packer) {
   var srcTags = makeTags(1280, 720, 'pgroup', 0);
   var dstTags = makeTags(21, 0, '420P', 0);
   packer.setInfo(srcTags, dstTags);
 }
 
-function badFmt() {
+function badFmt(packer) {
   var srcTags = makeTags(1280, 720, 'pgroup', 0);
   var dstTags = makeTags(1920, 1080, 'pgroup', 0);
   packer.setInfo(srcTags, dstTags);
 }
 
 packTest('Handling bad image dimensions', 
-  function (t, err) {
+  (t, err) => {
     t.ok(err, 'emits error');
   }, 
-  function (t, packer, done) {
-    t.throws(badDims);
+  (t, packer, done) => {
+    t.throws(badDims(packer));
     done();
   });
 
 packTest('Handling bad image format',
-  function (t, err) {
+  (t, err) => {
     t.ok(err, 'emits error');
   }, 
-  function (t, packer, done) {
-    t.throws(badFmt);
+  (t, packer, done) => {
+    t.throws(badFmt(packer));
     done();
   });
 
 packTest('Starting up a packer', 
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var dstWidth = 1920;
     var dstHeight = 1080;
     var srcTags = makeTags(1280, 720, 'pgroup', 0);
@@ -211,10 +211,10 @@ packTest('Starting up a packer',
   });
 
 packTest('Performing packing pgroup to 420P',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'pgroup', 0);
@@ -225,19 +225,19 @@ packTest('Performing packing pgroup to 420P',
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = make420PBuf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing V210 to 420P',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'v210', 0);
@@ -248,19 +248,19 @@ packTest('Performing packing V210 to 420P',
     var srcBuf = makeV210Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = make420PBuf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing pgroup to YUV422P10',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'pgroup', 0);
@@ -271,19 +271,19 @@ packTest('Performing packing pgroup to YUV422P10',
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeYUV422P10Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing pgroup to UYVY10',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'pgroup', 0);
@@ -294,19 +294,19 @@ packTest('Performing packing pgroup to UYVY10',
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeUYVY10Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing YUV422P10 to UYVY10',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
@@ -317,19 +317,19 @@ packTest('Performing packing YUV422P10 to UYVY10',
     var srcBuf = makeYUV422P10Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeUYVY10Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing V210 to YUV422P10',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'v210', 0);
@@ -340,19 +340,19 @@ packTest('Performing packing V210 to YUV422P10',
     var srcBuf = makeV210Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeYUV422P10Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing UYVY10 to pgroup',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'UYVY10', 0);
@@ -363,19 +363,19 @@ packTest('Performing packing UYVY10 to pgroup',
     var srcBuf = makeUYVY10Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = make4175Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing UYVY10 to YUV422P10',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'UYVY10', 0);
@@ -386,19 +386,19 @@ packTest('Performing packing UYVY10 to YUV422P10',
     var srcBuf = makeUYVY10Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeYUV422P10Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing UYVY10 to 420P',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'UYVY10', 0);
@@ -409,19 +409,19 @@ packTest('Performing packing UYVY10 to 420P',
     var srcBuf = makeUYVY10Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = make420PBuf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing YUV422P10 to 420P',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
@@ -432,19 +432,19 @@ packTest('Performing packing YUV422P10 to 420P',
     var srcBuf = makeYUV422P10Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = make420PBuf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing YUV422P10 to pgroup',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
@@ -455,19 +455,19 @@ packTest('Performing packing YUV422P10 to pgroup',
     var srcBuf = makeYUV422P10Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = make4175Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing 420P to pgroup',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, '420P', 0);
@@ -478,19 +478,19 @@ packTest('Performing packing 420P to pgroup',
     var srcBuf = make420PBuf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = make4175Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing YUV422P10 to V210',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
@@ -502,19 +502,19 @@ packTest('Performing packing YUV422P10 to V210',
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
     dstBuf.fill(0);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeV210Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing 420P to V210',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, '420P', 0);
@@ -526,19 +526,19 @@ packTest('Performing packing 420P to V210',
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
     dstBuf.fill(0);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeV210Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing pgroup to V210',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'pgroup', 0);
@@ -550,19 +550,19 @@ packTest('Performing packing pgroup to V210',
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
     dstBuf.fill(0);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = makeV210Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Performing packing V210 to pgroup',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1280;
     var height = 720;
     var srcTags = makeTags(width, height, 'v210', 0);
@@ -574,19 +574,19 @@ packTest('Performing packing V210 to pgroup',
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen);
     dstBuf.fill(0);
-    var numQueued = packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err, result) => {
       t.notOk(err, 'no error expected');
       var testDstBuf = make4175Buf(width, height);
-      t.deepEquals(result, testDstBuf, 'matches the expected packing result')   
+      t.deepEquals(result, testDstBuf, 'matches the expected packing result');   
       done();
     });
   });
 
 packTest('Handling undefined source',
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var bufArray;
     var width = 1920;
     var height = 1080;
@@ -594,39 +594,37 @@ packTest('Handling undefined source',
     var dstTags = makeTags(width, height, '420P', 0);
     var dstBufLen = packer.setInfo(srcTags, dstTags);
     var dstBuf = Buffer.alloc(dstBufLen);
-    packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err/*, result*/) => {
       t.ok(err, 'should return error');
       done();
     });
   });
 
 packTest('Handling undefined destination', 
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1920;
     var height = 1080;
-    var srcFormat = 'pgroup';
-    var dstFormat = '420P';
     var srcTags = makeTags(width, height, 'pgroup', 0);
     var dstTags = makeTags(width, height, '420P', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    /*var dstBufLen =*/ packer.setInfo(srcTags, dstTags);
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf;
-    packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err/*, result*/) => {
       t.ok(err, 'should return error');
       done();
     });
   });
 
 packTest('Handling insufficient destination bytes', 
-  function (t, err) {
+  (t, err) => {
     t.notOk(err, 'no error expected');
   }, 
-  function (t, packer, done) {
+  (t, packer, done) => {
     var width = 1920;
     var height = 1080;
     var srcTags = makeTags(width, height, 'pgroup', 0);
@@ -636,7 +634,7 @@ packTest('Handling insufficient destination bytes',
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;
     var dstBuf = Buffer.alloc(dstBufLen - 128);
-    packer.pack(bufArray, dstBuf, function(err, result) {
+    packer.pack(bufArray, dstBuf, (err/*, result*/) => {
       t.ok(err, 'should return error');
       done();
     });

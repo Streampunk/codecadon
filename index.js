@@ -36,7 +36,7 @@ Concater.prototype.setInfo = function(srcTags) {
     this.emit('error', err);
     return 0;
   }
-}
+};
 
 Concater.prototype.concat = function(srcBufArray, dstBuf, cb) {
   try {
@@ -47,7 +47,7 @@ Concater.prototype.concat = function(srcBufArray, dstBuf, cb) {
   } catch (err) {
     cb(err);
   }
-}
+};
 
 Concater.prototype.quit = function(cb) {
   try {
@@ -57,7 +57,7 @@ Concater.prototype.quit = function(cb) {
   } catch (err) {
     this.emit('error', err);
   }
-}
+};
 
 
 function Flipper(cb) {
@@ -74,7 +74,7 @@ Flipper.prototype.setInfo = function(srcTags, flip) {
     this.emit('error', err);
     return 0;
   }
-}
+};
 
 Flipper.prototype.flip = function(srcBufArray, dstBuf, cb) {
   try {
@@ -85,7 +85,7 @@ Flipper.prototype.flip = function(srcBufArray, dstBuf, cb) {
   } catch (err) {
     cb(err);
   }
-}
+};
 
 Flipper.prototype.quit = function(cb) {
   try {
@@ -95,7 +95,7 @@ Flipper.prototype.quit = function(cb) {
   } catch (err) {
     this.emit('error', err);
   }
-}
+};
 
 
 function Packer(cb) {
@@ -112,7 +112,7 @@ Packer.prototype.setInfo = function(srcTags, dstTags) {
     this.emit('error', err);
     return 0;
   }
-}
+};
 
 Packer.prototype.pack = function(srcBufArray, dstBuf, cb) {
   try {
@@ -123,7 +123,7 @@ Packer.prototype.pack = function(srcBufArray, dstBuf, cb) {
   } catch (err) {
     cb(err);
   }
-}
+};
 
 Packer.prototype.quit = function(cb) {
   try {
@@ -133,7 +133,7 @@ Packer.prototype.quit = function(cb) {
   } catch (err) {
     this.emit('error', err);
   }
-}
+};
 
 
 function ScaleConverter(cb) {
@@ -154,7 +154,7 @@ ScaleConverter.prototype.setInfo = function(srcTags, dstTags, scaleTags) {
     this.emit('error', err);
     return 0;
   }
-}
+};
 
 ScaleConverter.prototype.scaleConvert = function(srcBufArray, dstBuf, cb) {
   try {
@@ -165,7 +165,7 @@ ScaleConverter.prototype.scaleConvert = function(srcBufArray, dstBuf, cb) {
   } catch (err) {
     cb(err);
   }
-}
+};
 
 ScaleConverter.prototype.quit = function(cb) {
   try {
@@ -175,7 +175,7 @@ ScaleConverter.prototype.quit = function(cb) {
   } catch (err) {
     this.emit('error', err);
   }
-}
+};
 
 
 function Decoder (cb) {
@@ -192,7 +192,7 @@ Decoder.prototype.setInfo = function(srcTags, dstTags) {
     this.emit('error', err);
     return 0;
   }
-}
+};
 
 Decoder.prototype.decode = function(srcBufArray, dstBuf, cb) {
   try {
@@ -203,7 +203,7 @@ Decoder.prototype.decode = function(srcBufArray, dstBuf, cb) {
   } catch (err) {
     cb(err);
   }
-}
+};
 
 Decoder.prototype.quit = function(cb) {
   try {
@@ -213,7 +213,7 @@ Decoder.prototype.quit = function(cb) {
   } catch (err) {
     this.emit('error', err);
   }
-}
+};
 
 
 function Encoder (cb) {
@@ -230,7 +230,7 @@ Encoder.prototype.setInfo = function(srcTags, dstTags, duration, encodeTags) {
     this.emit('error', err);
     return 0;
   }
-}
+};
 
 Encoder.prototype.encode = function(srcBufArray, dstBuf, cb) {
   try {
@@ -241,7 +241,7 @@ Encoder.prototype.encode = function(srcBufArray, dstBuf, cb) {
   } catch (err) {
     cb(err);
   }
-}
+};
 
 Encoder.prototype.quit = function(cb) {
   try {
@@ -251,7 +251,7 @@ Encoder.prototype.quit = function(cb) {
   } catch (err) {
     this.emit('error', err);
   }
-}
+};
 
 
 function Stamper(cb) {
@@ -274,7 +274,7 @@ Stamper.prototype.setInfo = function(srcTags, dstTags) {
     this.emit('error', err);
     return 0;
   }
-}
+};
 
 Stamper.prototype.wipe = function(dstBuf, paramTags, cb) {
   try {
@@ -285,7 +285,7 @@ Stamper.prototype.wipe = function(dstBuf, paramTags, cb) {
   } catch (err) {
     cb(err);
   }
-}
+};
 
 Stamper.prototype.copy = function(srcBufArray, dstBuf, paramTags, cb) {
   try {
@@ -296,7 +296,7 @@ Stamper.prototype.copy = function(srcBufArray, dstBuf, paramTags, cb) {
   } catch (err) {
     cb(err);
   }
-}
+};
 
 Stamper.prototype.mix = function(srcBufArray, dstBuf, paramTags, cb) {
   try {
@@ -307,7 +307,7 @@ Stamper.prototype.mix = function(srcBufArray, dstBuf, paramTags, cb) {
   } catch (err) {
     cb(err);
   }
-}
+};
 
 Stamper.prototype.stamp = function(srcBufArray, dstBuf, paramTags, cb) {
   try {
@@ -318,7 +318,7 @@ Stamper.prototype.stamp = function(srcBufArray, dstBuf, paramTags, cb) {
   } catch (err) {
     cb(err);
   }
-}
+};
 
 Stamper.prototype.quit = function(cb) {
   try {
@@ -328,17 +328,17 @@ Stamper.prototype.quit = function(cb) {
   } catch (err) {
     this.emit('error', err);
   }
-}
+};
 
 
 var codecadon = {
-   Concater : Concater,
-   Flipper : Flipper,
-   Packer : Packer,
-   ScaleConverter : ScaleConverter,
-   Decoder : Decoder,
-   Encoder : Encoder,
-   Stamper : Stamper
+  Concater : Concater,
+  Flipper : Flipper,
+  Packer : Packer,
+  ScaleConverter : ScaleConverter,
+  Decoder : Decoder,
+  Encoder : Encoder,
+  Stamper : Stamper
 };
 
 module.exports = codecadon;

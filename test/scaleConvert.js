@@ -122,24 +122,14 @@ function scaleConvertTest(description, onErr, fn) {
   });
 }
 
-function badDims(scaleConverter) {
-  var srcTags = makeTags(1280, 720, 'pgroup', 0);
-  var dstTags = makeTags(21, 0, '420P', 0);
-  scaleConverter.setInfo(srcTags, dstTags);
-}
-
-function badFmt(scaleConverter) {
-  var srcTags = makeTags(1280, 720, 'pgroup', 0);
-  var dstTags = makeTags(1920, 1080, 'pgroup', 0);
-  scaleConverter.setInfo(srcTags, dstTags);
-}
-
 scaleConvertTest('Handling bad image dimensions', 
   (t, err) => {
     t.ok(err, 'emits error');
   }, 
   (t, scaleConverter, done) => {
-    t.throws(badDims(scaleConverter));
+    var srcTags = makeTags(1280, 720, 'pgroup', 0);
+    var dstTags = makeTags(21, 0, '420P', 0);
+    scaleConverter.setInfo(srcTags, dstTags);
     done();
   });
 
@@ -148,7 +138,9 @@ scaleConvertTest('Handling bad image format',
     t.ok(err, 'emits error');
   }, 
   (t, scaleConverter, done) => {
-    t.throws(badFmt(scaleConverter));
+    var srcTags = makeTags(1280, 720, 'pgroup', 0);
+    var dstTags = makeTags(1920, 1080, 'pgroup', 0);
+    scaleConverter.setInfo(srcTags, dstTags);
     done();
   });
 

@@ -138,24 +138,15 @@ function encodeTest(description, onErr, fn) {
   });
 }
 
-function badDims(encoder) {
-  var srcTags = makeTags(1280, 720, '420P', 'raw', 0);
-  var dstTags = makeTags(21, 0, 'h264', 'h264', 0);
-  encoder.setInfo(srcTags, dstTags);
-}
-
-function badFmt(encoder) {
-  var srcTags = makeTags(1920, 1080, 'pgroup', 'raw', 0);
-  var dstTags = makeTags(1920, 1080, '420P', 'h264', 0);
-  encoder.setInfo(srcTags, dstTags, duration);
-}
-
 encodeTest('Handling bad image dimensions',
   (t, err) => {
     t.ok(err, 'emits error');
   }, 
   (t, encoder, done) => {
-    t.throws(badDims(encoder));
+    var srcTags = makeTags(1280, 720, '420P', 'raw', 0);
+    var dstTags = makeTags(21, 0, 'h264', 'h264', 0);
+    var encodeTags = {};
+    encoder.setInfo(srcTags, dstTags, duration, encodeTags);
     done();
   });
 
@@ -164,7 +155,10 @@ encodeTest('Handling bad image format',
     t.ok(err, 'emits error');
   }, 
   (t, encoder, done) => {
-    t.throws(badFmt(encoder));
+    var srcTags = makeTags(1920, 1080, 'pgroup', 'raw', 0);
+    var dstTags = makeTags(1920, 1080, '420P', 'h264', 0);
+    var encodeTags = {};
+    encoder.setInfo(srcTags, dstTags, duration, encodeTags);
     done();
   });
 

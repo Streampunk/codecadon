@@ -114,8 +114,10 @@ void Encoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, const Dura
       Nan::ThrowError(err.c_str());
     }
     if ((mSrcInfo->width() != mDstInfo->width()) || (mSrcInfo->height() != mDstInfo->height())) {
-      std::string err = std::string("Unsupported dimensions \'") + std::to_string(mSrcInfo->width()) + "x" + std::to_string(mSrcInfo->height()) + "\'";
-      return Nan::ThrowError(err.c_str());
+      std::string err = std::string("Unsupported dimensions ") +
+        std::to_string(mSrcInfo->width()) + "x" + std::to_string(mSrcInfo->height()) + " != " +
+        std::to_string(mDstInfo->width()) + "x" + std::to_string(mDstInfo->height());
+        return Nan::ThrowError(err.c_str());
     }
   }
   else {

@@ -164,24 +164,14 @@ function packTest(description, onErr, fn) {
   });
 }
 
-function badDims(packer) {
-  var srcTags = makeTags(1280, 720, 'pgroup', 0);
-  var dstTags = makeTags(21, 0, '420P', 0);
-  packer.setInfo(srcTags, dstTags);
-}
-
-function badFmt(packer) {
-  var srcTags = makeTags(1280, 720, 'pgroup', 0);
-  var dstTags = makeTags(1920, 1080, 'pgroup', 0);
-  packer.setInfo(srcTags, dstTags);
-}
-
 packTest('Handling bad image dimensions', 
   (t, err) => {
     t.ok(err, 'emits error');
   }, 
   (t, packer, done) => {
-    t.throws(badDims(packer));
+    var srcTags = makeTags(1280, 720, 'pgroup', 0);
+    var dstTags = makeTags(21, 0, '420P', 0);
+    packer.setInfo(srcTags, dstTags);
     done();
   });
 
@@ -190,7 +180,9 @@ packTest('Handling bad image format',
     t.ok(err, 'emits error');
   }, 
   (t, packer, done) => {
-    t.throws(badFmt(packer));
+    var srcTags = makeTags(1280, 720, 'pgroup', 0);
+    var dstTags = makeTags(1920, 1080, 'pgroup', 0);
+    packer.setInfo(srcTags, dstTags);
     done();
   });
 

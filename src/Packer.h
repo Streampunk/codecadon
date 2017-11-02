@@ -16,6 +16,7 @@
 #ifndef PACKER_H
 #define PACKER_H
 
+#include "iDebug.h"
 #include "iProcess.h"
 #include <memory>
 
@@ -25,7 +26,7 @@ class MyWorker;
 class Packers;
 class EssenceInfo;
 
-class Packer : public Nan::ObjectWrap, public iProcess {
+class Packer : public Nan::ObjectWrap, public iProcess, public iDebug {
 public:
   static NAN_MODULE_INIT(Init);
 

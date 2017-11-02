@@ -16,6 +16,7 @@
 #ifndef DECODER_H
 #define DECODER_H
 
+#include "iDebug.h"
 #include "iProcess.h"
 #include <memory>
 
@@ -25,7 +26,7 @@ class MyWorker;
 class iDecoderDriver;
 class EssenceInfo;
 
-class Decoder : public Nan::ObjectWrap, public iProcess {
+class Decoder : public Nan::ObjectWrap, public iProcess, public iDebug {
 public:
   static NAN_MODULE_INIT(Init);
 

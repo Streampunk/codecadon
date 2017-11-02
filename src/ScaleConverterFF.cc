@@ -26,8 +26,8 @@ extern "C" {
 namespace streampunk {
 
 ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std::shared_ptr<EssenceInfo> dstVidInfo,
-                                   const fXY &userScale, const fXY &userDstOffset)
-  : mSwsContext(NULL),
+                                   const fXY &userScale, const fXY &userDstOffset, eDebugLevel debugLevel)
+  : iDebug(debugLevel), mSwsContext(NULL),
     mSrcWidth(srcVidInfo->width()), mSrcHeight(srcVidInfo->height()), mSrcIlace(srcVidInfo->interlace()),
     mSrcPixFmt((0==srcVidInfo->packing().compare("RGBA8"))?AV_PIX_FMT_RGBA
                :((0==srcVidInfo->packing().compare("BGR10-A")) || (0==srcVidInfo->packing().compare("BGR10-A-BS")))?AV_PIX_FMT_GBRP16
@@ -35,10 +35,10 @@ ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std:
     mDstWidth(dstVidInfo->width()), mDstHeight(dstVidInfo->height()), mDstIlace(dstVidInfo->interlace()),
     mDstPixFmt((8==dstVidInfo->depth())?dstVidInfo->hasAlpha()?AV_PIX_FMT_YUVA420P:AV_PIX_FMT_YUV420P
                                        :dstVidInfo->hasAlpha()?AV_PIX_FMT_YUVA422P10LE:AV_PIX_FMT_YUV422P10LE),
-    mUserScale(userScale), mUserDstOffset(userDstOffset), 
+    mUserScale(userScale), mUserDstOffset(userDstOffset),
     mScale(fXY(1.0f, 1.0f)), mDstOffset(fXY(0.0f, 0.0f)), mDoWipe(false) {
 
-  //printf("FFmpeg swscale %x, %s\n", swscale_version(), swscale_license());
+  printDebug(eDebug, "FFmpeg swscale %x, %s\n", swscale_version(), swscale_license());
   // !!! need pixel aspect ratios - assumed 1:1 !!!
   fXY fitScale((double)mDstWidth / mSrcWidth, (double)mDstHeight / mSrcHeight);
   fXY boxScale(fitScale.x < fitScale.y ? fXY(fitScale.x, fitScale.x) : fXY(fitScale.y, fitScale.y));
@@ -51,7 +51,7 @@ ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std:
   if ((float)mSrcHeight * boxScale.y * limUserScale.y > (float)mDstHeight)
     limUserScale.y = (float)mDstHeight / ((float)mSrcHeight * boxScale.y);
   if (limUserScale != mUserScale)
-    printf("User scaling limited to full frame %1.2f:%1.2f -> %1.2f:%1.2f\n",
+    printDebug(eWarn, "User scaling limited to full frame %1.2f:%1.2f -> %1.2f:%1.2f\n",
       mUserScale.x, mUserScale.y, limUserScale.x, limUserScale.y);
   mScale *= limUserScale;
 
@@ -61,9 +61,9 @@ ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std:
   mDstOffset = dstCentre - scaledCentre + mUserDstOffset;
   mDoWipe = !((mScale == fXY(1.0, 1.0)) && (mDstOffset == fXY(0.0, 0.0)));
 
-  printf("ScaleConverter fitScale: %1.2f:%1.2f, boxScale: %1.2f:%1.2f, mScale: %1.2f:%1.2f\n",
+  printDebug(eInfo, "ScaleConverter fitScale: %1.2f:%1.2f, boxScale: %1.2f:%1.2f, mScale: %1.2f:%1.2f\n",
     fitScale.x, fitScale.y, boxScale.x, boxScale.y, mScale.x, mScale.y);
-  printf("ScaleConverter dstOffset: %1.2f:%1.2f, wipe %s\n", mDstOffset.x, mDstOffset.y, mDoWipe?"true":"false");
+  printDebug(eInfo, "ScaleConverter dstOffset: %1.2f:%1.2f, wipe %s\n", mDstOffset.x, mDstOffset.y, mDoWipe?"true":"false");
 
   uint32_t dstWidth = (mScale.x < 1.0f) ? uint32_t(mDstWidth * mScale.x) : mDstWidth;
   uint32_t dstHeight = (mScale.y < 1.0f) ? uint32_t(mDstHeight * mScale.y) : mDstHeight;

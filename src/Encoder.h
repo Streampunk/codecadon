@@ -16,6 +16,7 @@
 #ifndef ENCODER_H
 #define ENCODER_H
 
+#include "iDebug.h"
 #include "iProcess.h"
 #include <memory>
 
@@ -27,7 +28,7 @@ class iEncoderDriver;
 class Duration;
 class EssenceInfo;
 
-class Encoder : public Nan::ObjectWrap, public iProcess {
+class Encoder : public Nan::ObjectWrap, public iProcess, public iDebug {
 public:
   static NAN_MODULE_INIT(Init);
 

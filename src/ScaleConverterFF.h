@@ -17,6 +17,8 @@
 #define SCALECONVERTERFF_H
 
 #include <memory>
+#include "iDebug.h"
+#include "iProcess.h"
 #include "Primitives.h"
 struct SwsContext;
 
@@ -24,10 +26,10 @@ namespace streampunk {
 
 class Memory;
 class EssenceInfo;
-class ScaleConverterFF {
+class ScaleConverterFF : public iDebug {
 public:
   ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std::shared_ptr<EssenceInfo> dstVidInfo,
-                   const fXY &userScale, const fXY &userDstOffset);
+                   const fXY &userScale, const fXY &userDstOffset, eDebugLevel debugLevel);
   ~ScaleConverterFF();
 
   std::string packingRequired() const;

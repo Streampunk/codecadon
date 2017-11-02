@@ -16,6 +16,7 @@
 #ifndef SCALECONVERTER_H
 #define SCALECONVERTER_H
 
+#include "iDebug.h"
 #include "iProcess.h"
 #include <memory>
 
@@ -26,7 +27,7 @@ class ScaleConverterFF;
 class Packers;
 class EssenceInfo;
 
-class ScaleConverter : public Nan::ObjectWrap, public iProcess {
+class ScaleConverter : public Nan::ObjectWrap, public iProcess, public iDebug {
 public:
   static NAN_MODULE_INIT(Init);
 

@@ -63,16 +63,16 @@ uint32_t Decoder::processFrame (std::shared_ptr<iProcessData> processData) {
   // do the decode
   uint32_t dstBytes = 0;
   mDecoderDriver->decodeFrame (dpd->srcBuf(), dpd->dstBuf(), mFrameNum++, &dstBytes);
-  printf("decode : %.2fms\n", t.delta());
+  printDebug(eDebug, "decode : %.2fms\n", t.delta());
 
   return dstBytes;
 }
 
 void Decoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
   mSrcVidInfo = std::make_shared<EssenceInfo>(srcTags); 
-  printf ("Decoder SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
+  printDebug(eInfo, "Decoder SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
   mDstVidInfo = std::make_shared<EssenceInfo>(dstTags); 
-  printf("Decoder DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
+  printDebug(eInfo, "Decoder DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
 
   if (mSrcVidInfo->encodingName().compare("h264") && mSrcVidInfo->encodingName().compare("vp8") && 
       mSrcVidInfo->encodingName().compare("AVCi50") && mSrcVidInfo->encodingName().compare("AVCi100")) {
@@ -98,13 +98,20 @@ void Decoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
 }
 
 NAN_METHOD(Decoder::SetInfo) {
-  if (info.Length() != 2)
-    return Nan::ThrowError("Decoder SetInfo expects 2 arguments");
+  if (info.Length() != 3)
+    return Nan::ThrowError("Decoder SetInfo expects 3 arguments");
+  if (!info[0]->IsObject())
+    return Nan::ThrowError("Decoder SetInfo requires a valid source info object as the first parameter");
+  if (!info[1]->IsObject())
+    return Nan::ThrowError("Decoder SetInfo requires a valid destination info object as the second parameter");
+  if (!info[2]->IsNumber())
+    return Nan::ThrowError("Decoder SetInfo requires a valid debug level as the third parameter");
   Local<Object> srcTags = Local<Object>::Cast(info[0]);
   Local<Object> dstTags = Local<Object>::Cast(info[1]);
 
   Decoder* obj = Nan::ObjectWrap::Unwrap<Decoder>(info.Holder());
-
+  obj->setDebug((eDebugLevel)Nan::To<uint32_t>(info[2]).FromJust());
+  
   Nan::TryCatch try_catch;
   obj->doSetInfo(srcTags, dstTags);
   if (try_catch.HasCaught()) {

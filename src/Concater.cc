@@ -115,19 +115,24 @@ uint32_t Concater::processFrame (std::shared_ptr<iProcessData> processData) {
     }
   }
   
-  printf("concat : %.2fms\n", t.delta());
+  printDebug(eDebug, "concat: %.2fms\n", t.delta());
   return totalBytes;
 }
 
 NAN_METHOD(Concater::SetInfo) {
-  if (info.Length() != 1)
-    return Nan::ThrowError("Concater SetInfo expects 1 argument");
+  if (info.Length() != 2)
+    return Nan::ThrowError("Concater SetInfo expects 2 arguments");
+  if (!info[0]->IsObject())
+    return Nan::ThrowError("Concater SetInfo requires a valid source info object as the first parameter");
+  if (!info[1]->IsNumber())
+    return Nan::ThrowError("Concater SetInfo requires a valid debug level as the second parameter");
   Local<Object> srcTags = Local<Object>::Cast(info[0]);
-
+  
   Concater* obj = Nan::ObjectWrap::Unwrap<Concater>(info.Holder());
+  obj->setDebug((eDebugLevel)Nan::To<uint32_t>(info[1]).FromJust());
 
   obj->mSrcEssInfo = std::make_shared<EssenceInfo>(srcTags); 
-  printf("Concater EssInfo: %s\n", obj->mSrcEssInfo->toString().c_str());
+  obj->printDebug(eInfo, "Concater EssInfo: %s\n", obj->mSrcEssInfo->toString().c_str());
 
   uint32_t sampleBytes = 0;
   obj->mIsVideo = obj->mSrcEssInfo->isVideo();
@@ -166,7 +171,7 @@ NAN_METHOD(Concater::Concat) {
   Concater* obj = Nan::ObjectWrap::Unwrap<Concater>(info.Holder());
 
   if (!obj->mSetInfoOK)
-    printf("Concater Concat called with incorrect setup parameters\n");
+    return Nan::ThrowError("Concater Concat called with incorrect setup parameters");
 
   std::shared_ptr<ConcatProcessData> cpd = std::make_shared<ConcatProcessData>(srcBufArray, dstBuf);
   if (cpd->srcBytes() > cpd->dstBuf()->numBytes()) {

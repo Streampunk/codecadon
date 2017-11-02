@@ -91,21 +91,28 @@ uint32_t Flipper::processFrame (std::shared_ptr<iProcessData> processData) {
     memcpy(dstLine, srcLine, mPitchBytes);
   }
 
-  printf("flip : %.2fms\n", t.delta());
+  printDebug(eDebug, "flip : %.2fms\n", t.delta());
   return mSrcFormatBytes;
 }
 
 NAN_METHOD(Flipper::SetInfo) {
-  if (info.Length() != 2)
-    return Nan::ThrowError("Flipper SetInfo expects 2 arguments");
+  if (info.Length() != 3)
+    return Nan::ThrowError("Flipper SetInfo expects 3 arguments");
+  if (!info[0]->IsObject())
+    return Nan::ThrowError("Flipper SetInfo requires a valid source info object as the first parameter");
+  if (!info[1]->IsObject())
+    return Nan::ThrowError("Flipper SetInfo requires a valid flip info object as the second parameter");
+  if (!info[2]->IsNumber())
+    return Nan::ThrowError("Flipper SetInfo requires a valid debug level as the third parameter");
   Local<Object> srcTags = Local<Object>::Cast(info[0]);
   Local<Object> flipObj = Local<Object>::Cast(info[1]);
   
   Flipper* obj = Nan::ObjectWrap::Unwrap<Flipper>(info.Holder());
-
+  obj->setDebug((eDebugLevel)Nan::To<uint32_t>(info[2]).FromJust());
+  
   obj->mSrcVidInfo = std::make_shared<EssenceInfo>(srcTags);
   obj->mFlipInfo = std::make_shared<FlipInfo>(flipObj);
-  printf("Flipper SrcVidInfo: %s%s%s\n", obj->mSrcVidInfo->toString().c_str(), obj->mFlipInfo->hflip()?", hflip":"", obj->mFlipInfo->vflip()?", vflip":"");
+  obj->printDebug(eInfo, "Flipper SrcVidInfo: %s%s%s\n", obj->mSrcVidInfo->toString().c_str(), obj->mFlipInfo->hflip()?", hflip":"", obj->mFlipInfo->vflip()?", vflip":"");
 
   // Currently supporting only non-planar formats
   if (obj->mSrcVidInfo->packing().compare("pgroup") && obj->mSrcVidInfo->packing().compare("v210") && obj->mSrcVidInfo->packing().compare("UYVY10") && 
@@ -146,7 +153,7 @@ NAN_METHOD(Flipper::Flip) {
   Flipper* obj = Nan::ObjectWrap::Unwrap<Flipper>(info.Holder());
 
   if (!obj->mSetInfoOK)
-    printf("Flipper flip called with incorrect setup parameters\n");
+    return Nan::ThrowError("Flipper flip called with incorrect setup parameters");
 
   obj->mSrcFormatBytes = getFormatBytes(obj->mSrcVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height());
   if (obj->mSrcFormatBytes > (uint32_t)node::Buffer::Length(srcBufObj))

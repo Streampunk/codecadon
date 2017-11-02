@@ -16,6 +16,7 @@
 #ifndef STAMPER_H
 #define STAMPER_H
 
+#include "iDebug.h"
 #include "iProcess.h"
 #include <memory>
 
@@ -28,7 +29,7 @@ class CopyProcessData;
 class MixProcessData;
 class StampProcessData;
 
-class Stamper : public Nan::ObjectWrap, public iProcess {
+class Stamper : public Nan::ObjectWrap, public iProcess, public iDebug {
 public:
   static NAN_MODULE_INIT(Init);
 

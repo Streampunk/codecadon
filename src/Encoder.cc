@@ -75,15 +75,15 @@ uint32_t Encoder::processFrame (std::shared_ptr<iProcessData> processData) {
   if (mPacker) {
     mPacker->convert(epd->srcBuf(), epd->convertDstBuf());
     encodeSrcBuf = epd->convertDstBuf();
-    printf("convert: %.2fms\n", t.delta());
+    printDebug(eDebug, "convert: %.2fms\n", t.delta());
   }
 
   try {
     mEncoderDriver->encodeFrame (encodeSrcBuf, epd->dstBuf(), mFrameNum++, &dstBytes);
   } catch (std::exception& err) {
-    printf("Encode error: %s\n", err.what());
+    printDebug(eError, "Encode error: %s\n", err.what());
   }
-  printf("encode : %.2fms\n", t.delta());
+  printDebug(eDebug, "encode: %.2fms\n", t.delta());
 
   return dstBytes;
 }
@@ -91,11 +91,11 @@ uint32_t Encoder::processFrame (std::shared_ptr<iProcessData> processData) {
 void Encoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, const Duration& duration,
                         Local<Object> encodeTags) {
   mSrcInfo = std::make_shared<EssenceInfo>(srcTags); 
-  printf ("Encoder SrcInfo: %s\n", mSrcInfo->toString().c_str());
+  printDebug(eInfo, "Encoder SrcInfo: %s\n", mSrcInfo->toString().c_str());
   mDstInfo = std::make_shared<EssenceInfo>(dstTags); 
-  printf("Encoder DstInfo: %s\n", mDstInfo->toString().c_str());
+  printDebug(eInfo, "Encoder DstInfo: %s\n", mDstInfo->toString().c_str());
   std::shared_ptr<EncodeParams> encodeParams = std::make_shared<EncodeParams>(encodeTags, mSrcInfo->isVideo()); 
-  printf("Encode Params: %s\n", encodeParams->toString().c_str());
+  printDebug(eInfo, "Encode Params: %s\n", encodeParams->toString().c_str());
 
   if (mSrcInfo->isVideo()) {
     if (mSrcInfo->packing().compare("420P") && mSrcInfo->packing().compare("YUV422P10") && 
@@ -138,8 +138,8 @@ void Encoder::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, const Dura
 }
 
 NAN_METHOD(Encoder::SetInfo) {
-  if (info.Length() != 4)
-    return Nan::ThrowError("Encoder SetInfo expects 4 arguments");
+  if (info.Length() != 5)
+    return Nan::ThrowError("Encoder SetInfo expects 5 arguments");
   if (!info[0]->IsObject())
     return Nan::ThrowError("Encoder SetInfo requires a valid source info object as the first parameter");
   if (!info[1]->IsObject())
@@ -148,13 +148,16 @@ NAN_METHOD(Encoder::SetInfo) {
     return Nan::ThrowError("Encoder SetInfo requires a valid duration buffer as the third parameter");
   if (!info[3]->IsObject())
     return Nan::ThrowError("Encoder SetInfo requires a valid params object as the fourth parameter");
+  if (!info[4]->IsNumber())
+    return Nan::ThrowError("Encoder SetInfo requires a valid debug level as the fifth parameter");
   Local<Object> srcTags = Local<Object>::Cast(info[0]);
   Local<Object> dstTags = Local<Object>::Cast(info[1]);
   Local<Object> durObj = Local<Object>::Cast(info[2]);
   Local<Object> encodeTags = Local<Object>::Cast(info[3]);
-
+  
   Encoder* obj = Nan::ObjectWrap::Unwrap<Encoder>(info.Holder());
-
+  obj->setDebug((eDebugLevel)Nan::To<uint32_t>(info[4]).FromJust());
+  
   uint32_t *pDur = (uint32_t *)node::Buffer::Data(durObj);
   uint32_t durNum = beToLe32(*pDur++);
   uint32_t durDen = beToLe32(*pDur);

@@ -157,7 +157,7 @@ uint32_t Stamper::processFrame (std::shared_ptr<iProcessData> processData) {
     doStamp(spd);
   }
 
-  printf("%s: %.2fms\n", func.c_str(), t.delta());
+  printDebug(eDebug, "%s: %.2fms\n", func.c_str(), t.delta());
 
   return mDstBytesReq;
 }
@@ -165,9 +165,9 @@ uint32_t Stamper::processFrame (std::shared_ptr<iProcessData> processData) {
 void Stamper::doSetInfo(Local<Array> srcTagsArray, Local<Object> dstTags) {
   Local<Object> srcTags = Local<Object>::Cast(srcTagsArray->Get(0));
   mSrcVidInfo = std::make_shared<EssenceInfo>(srcTags); 
-  printf ("Stamper SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
+  printDebug(eInfo, "Stamper SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
   mDstVidInfo = std::make_shared<EssenceInfo>(dstTags); 
-  printf("Stamper DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
+  printDebug(eInfo, "Stamper DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
 
   if (mSrcVidInfo->packing().compare(mDstVidInfo->packing())) {
     std::string err = std::string("Source and destination format must be identical \'") + mSrcVidInfo->packing() + "\', \'" + mDstVidInfo->packing() + "\'";
@@ -466,19 +466,21 @@ void Stamper::doStamp(std::shared_ptr<StampProcessData> spd) {
 }
 
 NAN_METHOD(Stamper::SetInfo) {
-  if (info.Length() != 2)
-    return Nan::ThrowError("Stamper SetInfo expects 2 arguments");
-
+  if (info.Length() != 3)
+    return Nan::ThrowError("Stamper SetInfo expects 3 arguments");
   if (!info[0]->IsArray())
     return Nan::ThrowError("Stamper SetInfo requires a valid srcTags array as the first parameter");
   if (!info[1]->IsObject())
     return Nan::ThrowError("Stamper SetInfo requires a valid dstTags object as the second parameter");
-    
+  if (!info[2]->IsNumber())
+    return Nan::ThrowError("Stamper SetInfo requires a valid debug level as the third parameter");
+
   Local<Array> srcTagsArray = Local<Array>::Cast(info[0]);
   Local<Object> dstTags = Local<Object>::Cast(info[1]);
 
   Stamper* obj = Nan::ObjectWrap::Unwrap<Stamper>(info.Holder());
-
+  obj->setDebug((eDebugLevel)Nan::To<uint32_t>(info[2]).FromJust());
+  
   Nan::TryCatch try_catch;
   obj->doSetInfo(srcTagsArray, dstTags);
   if (try_catch.HasCaught()) {

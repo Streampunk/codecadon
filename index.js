@@ -29,9 +29,10 @@ function Concater(cb) {
 
 util.inherits(Concater, EventEmitter);
 
-Concater.prototype.setInfo = function(srcTags) {
+Concater.prototype.setInfo = function(srcTags, logLevel) {
+  let debugLevel = (typeof logLevel === 'number')?logLevel:3;
   try {
-    return this.concaterAdon.setInfo(srcTags);
+    return this.concaterAdon.setInfo(srcTags, debugLevel);
   } catch (err) {
     this.emit('error', err);
     return 0;
@@ -67,9 +68,10 @@ function Flipper(cb) {
 
 util.inherits(Flipper, EventEmitter);
 
-Flipper.prototype.setInfo = function(srcTags, flip) {
+Flipper.prototype.setInfo = function(srcTags, flip, logLevel) {
+  let debugLevel = (typeof logLevel === 'number')?logLevel:3;
   try {
-    return this.flipperAdon.setInfo(srcTags, flip);
+    return this.flipperAdon.setInfo(srcTags, flip, debugLevel);
   } catch (err) {
     this.emit('error', err);
     return 0;
@@ -105,9 +107,10 @@ function Packer(cb) {
 
 util.inherits(Packer, EventEmitter);
 
-Packer.prototype.setInfo = function(srcTags, dstTags) {
+Packer.prototype.setInfo = function(srcTags, dstTags, logLevel) {
+  let debugLevel = (typeof logLevel === 'number')?logLevel:3;
   try {
-    return this.packerAdon.setInfo(srcTags, dstTags);
+    return this.packerAdon.setInfo(srcTags, dstTags, debugLevel);
   } catch (err) {
     this.emit('error', err);
     return 0;
@@ -143,13 +146,14 @@ function ScaleConverter(cb) {
 
 util.inherits(ScaleConverter, EventEmitter);
 
-ScaleConverter.prototype.setInfo = function(srcTags, dstTags, scaleTags) {
+ScaleConverter.prototype.setInfo = function(srcTags, dstTags, scaleTags, logLevel) {
+  let debugLevel = (typeof logLevel === 'number')?logLevel:3;
   var paramTags = { scale:[1.0, 1.0], dstOffset:[0.0, 0.0] };
   if (typeof scaleTags === 'object')
     paramTags = scaleTags;
 
   try {
-    return this.scaleConverterAdon.setInfo(srcTags, dstTags, paramTags);
+    return this.scaleConverterAdon.setInfo(srcTags, dstTags, paramTags, debugLevel);
   } catch (err) {
     this.emit('error', err);
     return 0;
@@ -185,9 +189,10 @@ function Decoder (cb) {
 
 util.inherits(Decoder, EventEmitter);
 
-Decoder.prototype.setInfo = function(srcTags, dstTags) {
+Decoder.prototype.setInfo = function(srcTags, dstTags, logLevel) {
+  let debugLevel = (typeof logLevel === 'number')?logLevel:3;
   try {
-    return this.decoderAdon.setInfo(srcTags, dstTags);
+    return this.decoderAdon.setInfo(srcTags, dstTags, debugLevel);
   } catch (err) {
     this.emit('error', err);
     return 0;
@@ -223,9 +228,10 @@ function Encoder (cb) {
 
 util.inherits(Encoder, EventEmitter);
 
-Encoder.prototype.setInfo = function(srcTags, dstTags, duration, encodeTags) {
+Encoder.prototype.setInfo = function(srcTags, dstTags, duration, encodeTags, logLevel) {
+  let debugLevel = (typeof logLevel === 'number')?logLevel:3;
   try {
-    return this.encoderAdon.setInfo(srcTags, dstTags, duration, encodeTags);
+    return this.encoderAdon.setInfo(srcTags, dstTags, duration, encodeTags, debugLevel);
   } catch (err) {
     this.emit('error', err);
     return 0;
@@ -261,7 +267,8 @@ function Stamper(cb) {
 
 util.inherits(Stamper, EventEmitter);
 
-Stamper.prototype.setInfo = function(srcTags, dstTags) {
+Stamper.prototype.setInfo = function(srcTags, dstTags, logLevel) {
+  let debugLevel = (typeof logLevel === 'number')?logLevel:3;
   var srcTagsArray = [];
   if (Array.isArray(srcTags))
     srcTagsArray = srcTags;
@@ -269,7 +276,7 @@ Stamper.prototype.setInfo = function(srcTags, dstTags) {
     srcTagsArray = [ srcTags ];
 
   try {
-    return this.stamperAdon.setInfo(srcTagsArray, dstTags);
+    return this.stamperAdon.setInfo(srcTagsArray, dstTags, debugLevel);
   } catch (err) {
     this.emit('error', err);
     return 0;

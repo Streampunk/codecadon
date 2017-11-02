@@ -16,6 +16,7 @@
 #ifndef CONCATER_H
 #define CONCATER_H
 
+#include "iDebug.h"
 #include "iProcess.h"
 #include <memory>
 
@@ -24,7 +25,7 @@ namespace streampunk {
 class MyWorker;
 class EssenceInfo;
 
-class Concater : public Nan::ObjectWrap, public iProcess {
+class Concater : public Nan::ObjectWrap, public iProcess, public iDebug {
 public:
   static NAN_MODULE_INIT(Init);
 

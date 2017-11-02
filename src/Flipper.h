@@ -17,6 +17,7 @@
 #define FLIPPER_H
 
 #include <nan.h>
+#include "iDebug.h"
 #include "iProcess.h"
 #include <memory>
 
@@ -26,7 +27,7 @@ class MyWorker;
 class EssenceInfo;
 class FlipInfo;
 
-class Flipper : public Nan::ObjectWrap, public iProcess {
+class Flipper : public Nan::ObjectWrap, public iProcess, public iDebug {
 public:
   static NAN_MODULE_INIT(Init);
 

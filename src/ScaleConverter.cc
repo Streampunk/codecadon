@@ -73,12 +73,12 @@ uint32_t ScaleConverter::processFrame (std::shared_ptr<iProcessData> processData
   else {
     if (!mUnityPacking) {
       mPacker->convert(scpd->srcBuf(), scpd->convertDstBuf()); 
-      printf("convert: %.2fms\n", t.delta());
+      printDebug(eDebug, "convert: %.2fms\n", t.delta());
     }
 
     if (!mUnityScale) {
       mScaleConverterFF->scaleConvertFrame (scpd->scaleSrcBuf(), scpd->dstBuf());
-      printf("scale  : %.2fms\n", t.delta());
+      printDebug(eDebug, "scale: %.2fms\n", t.delta());
     }
   }
   return mDstBytesReq;
@@ -86,9 +86,9 @@ uint32_t ScaleConverter::processFrame (std::shared_ptr<iProcessData> processData
 
 void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8::Local<v8::Object> paramTags) {
   mSrcVidInfo = std::make_shared<EssenceInfo>(srcTags); 
-  printf ("Converter SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
+  printDebug(eInfo, "Converter SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
   mDstVidInfo = std::make_shared<EssenceInfo>(dstTags); 
-  printf("Converter DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
+  printDebug(eInfo, "Converter DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
 
   if (mSrcVidInfo->packing().compare("pgroup") && mSrcVidInfo->packing().compare("v210") && 
       mSrcVidInfo->packing().compare("YUV422P10") && mSrcVidInfo->packing().compare("UYVY10") && mSrcVidInfo->packing().compare("420P") && 
@@ -127,7 +127,7 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
     return Nan::ThrowError(err.c_str());
   }
 
-  mScaleConverterFF = std::make_shared<ScaleConverterFF>(mSrcVidInfo, mDstVidInfo, scale, dstOffset);
+  mScaleConverterFF = std::make_shared<ScaleConverterFF>(mSrcVidInfo, mDstVidInfo, scale, dstOffset, mDebugLevel);
   mUnityPacking = (0==mSrcVidInfo->packing().compare(mScaleConverterFF->packingRequired()));
 
   mUnityScale = ((mSrcVidInfo->width() == mDstVidInfo->width()) &&
@@ -142,14 +142,23 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
 }
 
 NAN_METHOD(ScaleConverter::SetInfo) {
-  if (info.Length() != 3)
-    return Nan::ThrowError("Converter SetInfo expects 3 arguments");
+  if (info.Length() != 4)
+    return Nan::ThrowError("Converter SetInfo expects 4 arguments");
+  if (!info[0]->IsObject())
+    return Nan::ThrowError("Converter SetInfo requires a valid source info object as the first parameter");
+  if (!info[1]->IsObject())
+    return Nan::ThrowError("Converter SetInfo requires a valid destination info object as the second parameter");
+  if (!info[2]->IsObject())
+    return Nan::ThrowError("Converter SetInfo requires a valid convert info object as the third parameter");
+  if (!info[3]->IsNumber())
+    return Nan::ThrowError("Converter SetInfo requires a valid debug level as the fourth parameter");
   Local<Object> srcTags = Local<Object>::Cast(info[0]);
   Local<Object> dstTags = Local<Object>::Cast(info[1]);
   Local<Object> paramTags = Local<Object>::Cast(info[2]);
 
   ScaleConverter* obj = Nan::ObjectWrap::Unwrap<ScaleConverter>(info.Holder());
-
+  obj->setDebug((eDebugLevel)Nan::To<uint32_t>(info[3]).FromJust());
+  
   Nan::TryCatch try_catch;
   obj->doSetInfo(srcTags, dstTags, paramTags);
   if (try_catch.HasCaught()) {

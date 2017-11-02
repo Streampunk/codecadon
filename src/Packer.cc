@@ -64,16 +64,16 @@ uint32_t Packer::processFrame (std::shared_ptr<iProcessData> processData) {
   }
   else {
     mPacker->convert(ppd->srcBuf(), ppd->dstBuf()); 
-    printf("pack: %.2fms\n", t.delta());
+    printDebug(eDebug, "pack: %.2fms\n", t.delta());
   }
   return mDstBytesReq;
 }
 
 void Packer::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
   mSrcVidInfo = std::make_shared<EssenceInfo>(srcTags); 
-  printf ("Packer SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
+  printDebug(eInfo, "Packer SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
   mDstVidInfo = std::make_shared<EssenceInfo>(dstTags); 
-  printf("Packer DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
+  printDebug(eInfo, "Packer DstVidInfo: %s\n", mDstVidInfo->toString().c_str());
 
   if (mSrcVidInfo->packing().compare("pgroup") && mSrcVidInfo->packing().compare("v210") && 
       mSrcVidInfo->packing().compare("YUV422P10") && mSrcVidInfo->packing().compare("UYVY10") && 
@@ -98,13 +98,20 @@ void Packer::doSetInfo(Local<Object> srcTags, Local<Object> dstTags) {
 }
 
 NAN_METHOD(Packer::SetInfo) {
-  if (info.Length() != 2)
-    return Nan::ThrowError("Packer SetInfo expects 2 arguments");
+  if (info.Length() != 3)
+    return Nan::ThrowError("Packer SetInfo expects 3 arguments");
+  if (!info[0]->IsObject())
+    return Nan::ThrowError("Packer SetInfo requires a valid source info object as the first parameter");
+  if (!info[1]->IsObject())
+    return Nan::ThrowError("Packer SetInfo requires a valid destination info object as the second parameter");
+  if (!info[2]->IsNumber())
+    return Nan::ThrowError("Packer SetInfo requires a valid debug level as the third parameter");
   Local<Object> srcTags = Local<Object>::Cast(info[0]);
   Local<Object> dstTags = Local<Object>::Cast(info[1]);
 
   Packer* obj = Nan::ObjectWrap::Unwrap<Packer>(info.Holder());
-
+  obj->setDebug((eDebugLevel)Nan::To<uint32_t>(info[2]).FromJust());
+  
   Nan::TryCatch try_catch;
   obj->doSetInfo(srcTags, dstTags);
   if (try_catch.HasCaught()) {

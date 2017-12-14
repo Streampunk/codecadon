@@ -1,9 +1,9 @@
 machine:
   node:
-    version: 6.11.5
+    version: 8.9.3
 
 test:
   override:
     - npm install -g tap-xunit
     - mkdir $CIRCLE_TEST_REPORTS/xunit
-    - npm test | tap-xunit > $CIRCLE_TEST_REPORTS/xunit/results.xml
+    - set -eo pipefail && npm test | tap-xunit > $CIRCLE_TEST_REPORTS/xunit/results.xml

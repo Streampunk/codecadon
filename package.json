@@ -20,7 +20,6 @@
   },
   "gypfile": true,
   "devDependencies": {
-    "eslint": "^4.13.1",
     "tape": "^4.8.0"
   },
   "author": "Streampunk Media Ltd",

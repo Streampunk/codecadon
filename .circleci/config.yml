@@ -63,7 +63,7 @@ jobs:
         paths:
         # This is a broad list of cache paths to include many possible development environments
         # You can probably delete some of these entries
-        - vendor/bundle
+        # - vendor/bundle
         # - ~/virtualenvs
         # - ~/.m2
         # - ~/.ivy2
@@ -76,16 +76,15 @@ jobs:
     #   This would typically be a build job when using workflows, possibly combined with build
     # This is based on your 1.0 configuration file or project settings
     - run: sudo npm install -g tap-xunit
-    - run: mkdir $CIRCLE_TEST_REPORTS/xunit
-    - run: set -eo pipefail && npm test | tap-xunit > $CIRCLE_TEST_REPORTS/xunit/results.xml
+    - run: mkdir -p /tmp/circleci-test-results/xunit
+    - run: set -eo pipefail && npm test | tap-xunit > /tmp/circleci-test-results/xunit/results.xml
     # Teardown
     #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each
     # Save test results
     - store_test_results:
-        path: $CIRCLE_TEST_REPORTS/xunit
+        path: /tmp/circleci-test-results/xunit
     # Save artifacts
     - store_artifacts:
-        path: $CIRCLE_ARTIFACTS
+        path: /tmp/circleci-artifacts
     - store_artifacts:
-        path: $CIRCLE_TEST_REPORTS/xunit
-        destination: xunit
+        path: /tmp/circleci-test-results

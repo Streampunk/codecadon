@@ -63,7 +63,7 @@ jobs:
         paths:
         # This is a broad list of cache paths to include many possible development environments
         # You can probably delete some of these entries
-        # - vendor/bundle
+        - vendor/bundle
         # - ~/virtualenvs
         # - ~/.m2
         # - ~/.ivy2
@@ -82,9 +82,10 @@ jobs:
     #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each
     # Save test results
     - store_test_results:
-        path: /tmp/circleci-test-results
+        path: $CIRCLE_TEST_REPORTS/xunit
     # Save artifacts
     - store_artifacts:
-        path: /tmp/circleci-artifacts
+        path: $CIRCLE_ARTIFACTS
     - store_artifacts:
-        path: /tmp/circleci-test-results
+        path: $CIRCLE_TEST_REPORTS/xunit
+        destination: xunit

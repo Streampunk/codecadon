@@ -125,8 +125,8 @@ duration.writeUIntBE(25, 4, 4);
 
 function encodeTest(description, numTests, onErr, fn) {
   test(description, t => {
-    t.plan(numTests);
-    var encoder = new codecadon.Encoder(() => {});
+    t.plan(numTests + 1);
+    var encoder = new codecadon.Encoder(() => t.pass(`${description} exited`));
     encoder.on('error', err => {
       onErr(t, err);
     });

@@ -151,8 +151,8 @@ function makeTags(width, height, packing, interlace) {
 
 function packTest(description, numTests, onErr, fn) {
   test(description, (t) => {
-    t.plan(numTests);
-    var packer = new codecadon.Packer(() => {});
+    t.plan(numTests + 1);
+    var packer = new codecadon.Packer(() => t.pass(`${description} exited`));
     packer.on('error', err => {
       onErr(t, err);
     });

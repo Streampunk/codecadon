@@ -109,8 +109,8 @@ function makeTags(width, height, packing, interlace) {
 
 function scaleConvertTest(description, numTests, onErr, fn) {
   test(description, (t) => {
-    t.plan(numTests);
-    var scaleConverter = new codecadon.ScaleConverter(() => {});
+    t.plan(numTests + 1);
+    var scaleConverter = new codecadon.ScaleConverter(() => t.pass(`${description} exited`));
     scaleConverter.on('error', err => {
       onErr(t, err);
     });

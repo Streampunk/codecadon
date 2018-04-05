@@ -84,8 +84,8 @@ function makeTags(width, height, packing, interlace) {
 
 function stampTest(description, numTests, onErr, fn) {
   test(description, (t) => {
-    t.plan(numTests);
-    var stamper = new codecadon.Stamper(() => {});
+    t.plan(numTests + 1);
+    var stamper = new codecadon.Stamper(() => t.pass(`${description} exited`));
     stamper.on('error', err => {
       onErr(t, err);
     });

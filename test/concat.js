@@ -40,8 +40,8 @@ function makeTags(width, height) {
 
 function concatTest(description, numTests, onErr, fn) {
   test(description, t => {
-    t.plan(numTests);
-    var concater = new codecadon.Concater(() => {});
+    t.plan(numTests + 1);
+    var concater = new codecadon.Concater(() => t.pass(`${description} exited`));
     concater.on('error', err => { 
       onErr(err);
     });

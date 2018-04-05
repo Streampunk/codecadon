@@ -76,13 +76,13 @@ jobs:
     # This is based on your 1.0 configuration file or project settings
     - run: mkdir -p $CIRCLE_TEST_REPORTS/xunit
     - run:
-      name: Run tests
-      command: set -eo pipefail && npm test | tap-xunit > $TESTRESULTSFILE
-      environment:
-        # if [ -z "${NODE_ENV:-}" ]; then export NODE_ENV=test; fi
-        UV_THREADPOOL_SIZE=32
-        PATH="~/Streampunk/codecadon/node_modules/.bin:$PATH"
-        TESTRESULTSFILE="$CIRCLE_TEST_REPORTS/xunit/results.xml"
+        name: Run tests
+        command: set -eo pipefail && npm test | tap-xunit > $TESTRESULTSFILE
+        environment:
+            # if [ -z "${NODE_ENV:-}" ]; then export NODE_ENV=test; fi
+            UV_THREADPOOL_SIZE=32
+            PATH="~/Streampunk/codecadon/node_modules/.bin:$PATH"
+            TESTRESULTSFILE="$CIRCLE_TEST_REPORTS/xunit/results.xml"
       
     # Teardown
     #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each

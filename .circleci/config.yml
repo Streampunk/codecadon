@@ -54,8 +54,6 @@ jobs:
         # Any branch if there are none on the default branch - this should be unnecessary if you have your default branch configured correctly
         - v1-dep-
     # The following line was run implicitly in your 1.0 builds based on what CircleCI inferred about the structure of your project. In 2.0 you need to be explicit about which commands should be run. In some cases you can discard inferred commands if they are not relevant to your project.
-    - run: if [ -z "${NODE_ENV:-}" ]; then export NODE_ENV=test; fi
-    - run: export PATH="~/Streampunk/codecadon/node_modules/.bin:$PATH"
     - run: npm install
     - run: npm install tap-xunit
     # Save dependency cache
@@ -77,8 +75,15 @@ jobs:
     #   This would typically be a build job when using workflows, possibly combined with build
     # This is based on your 1.0 configuration file or project settings
     - run: mkdir -p $CIRCLE_TEST_REPORTS/xunit
-    - run: export TESTRESULTSFILE="$CIRCLE_TEST_REPORTS/xunit/results.xml"
-    - run: set -eo pipefail && npm test | tap-xunit > TESTRESULTSFILE
+    - run:
+      name: Run tests
+      command: set -eo pipefail && npm test | tap-xunit > $TESTRESULTSFILE
+      environment:
+        # if [ -z "${NODE_ENV:-}" ]; then export NODE_ENV=test; fi
+        UV_THREADPOOL_SIZE=32
+        PATH="~/Streampunk/codecadon/node_modules/.bin:$PATH"
+        TESTRESULTSFILE="$CIRCLE_TEST_REPORTS/xunit/results.xml"
+      
     # Teardown
     #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each
     # Save test results

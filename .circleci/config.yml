@@ -77,7 +77,7 @@ jobs:
     # This is based on your 1.0 configuration file or project settings
     - run: echo 'export PATH="~/Streampunk/codecadon/node_modules/.bin:$PATH"' >> $BASH_ENV
     - run: mkdir -p $CIRCLE_TEST_REPORTS/xunit
-    - run: set -eo pipefail && npm test | tap-xunit > /tmp/circleci-test-results/xunit/results.xml
+    # - run: set -eo pipefail && npm test | tap-xunit > /tmp/circleci-test-results/xunit/results.xml
       
     # Teardown
     #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each

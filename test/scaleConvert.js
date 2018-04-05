@@ -13,8 +13,9 @@
   limitations under the License.
 */
 
-var test = require('tape');
+var tap = require('tap');
 var codecadon = require('../../codecadon');
+const logLevel = 2;
 
 function make4175Buf(width, height) {
   var pitchBytes = width * 5 / 2;
@@ -108,25 +109,31 @@ function makeTags(width, height, packing, interlace) {
 }
 
 function scaleConvertTest(description, numTests, onErr, fn) {
-  test(description, (t) => {
+  tap.test(description, (t) => {
     t.plan(numTests + 1);
-    var scaleConverter = new codecadon.ScaleConverter(() => t.pass(`${description} exited`));
+    var scaleConverter = new codecadon.ScaleConverter(() => {});
     scaleConverter.on('error', err => {
       onErr(t, err);
     });
 
     fn(t, scaleConverter, () => {
-      scaleConverter.quit(() => {});
+      scaleConverter.quit(() => {
+        t.pass(`${description} exited`);
+        t.end();        
+      });
     });
   });
 }
+
+tap.plan(7, 'ScaleConverter addon tests');
+const paramTags = { scale:[1.0, 1.0], dstOffset:[0.0, 0.0] };
 
 scaleConvertTest('Handling bad image dimensions', 1,
   (t, err) => t.ok(err, 'emits error'), 
   (t, scaleConverter, done) => {
     var srcTags = makeTags(1280, 720, 'pgroup', 0);
     var dstTags = makeTags(21, 0, '420P', 0);
-    scaleConverter.setInfo(srcTags, dstTags);
+    scaleConverter.setInfo(srcTags, dstTags, paramTags, logLevel);
     done();
   });
 
@@ -135,7 +142,7 @@ scaleConvertTest('Handling bad image format', 1,
   (t, scaleConverter, done) => {
     var srcTags = makeTags(1280, 720, 'pgroup', 0);
     var dstTags = makeTags(1920, 1080, 'pgroup', 0);
-    scaleConverter.setInfo(srcTags, dstTags);
+    scaleConverter.setInfo(srcTags, dstTags, paramTags, logLevel);
     done();
   });
 
@@ -147,7 +154,7 @@ scaleConvertTest('Starting up a scaleConverter', 1,
     var srcTags = makeTags(1280, 720, 'pgroup', 0);
     var dstTags = makeTags(dstWidth, dstHeight, '420P', 0);
   
-    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
+    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags, paramTags, logLevel);
     var numBytesExpected = dstWidth * dstHeight * 3/2;
     t.equal(dstBufLen, numBytesExpected, 'buffer size calculation matches the expected value');
     done();
@@ -164,7 +171,7 @@ scaleConvertTest('Performing scaling pgroup to YUV422P10', 2,
     var dstFormat = 'YUV422P10';
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 1);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 1);
-    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
+    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags, paramTags, logLevel);
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(srcWidth, srcHeight);
     bufArray[0] = srcBuf;
@@ -189,7 +196,7 @@ scaleConvertTest('Handling undefined source', 1,
     var dstFormat = '420P';
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
-    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
+    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags, paramTags, logLevel);
     var dstBuf = Buffer.alloc(dstBufLen);
     scaleConverter.scaleConvert(bufArray, dstBuf, (err/* result*/) => {
       t.ok(err, 'should return error');
@@ -208,7 +215,7 @@ scaleConvertTest('Handling undefined destination', 1,
     var dstFormat = '420P';
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
-    /*var dstBufLen =*/ scaleConverter.setInfo(srcTags, dstTags);
+    /*var dstBufLen =*/ scaleConverter.setInfo(srcTags, dstTags, paramTags, logLevel);
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(srcWidth, srcHeight);
     bufArray[0] = srcBuf;
@@ -230,7 +237,7 @@ scaleConvertTest('Handling insufficient destination bytes', 1,
     var dstFormat = '420P';
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, 0);
-    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags);
+    var dstBufLen = scaleConverter.setInfo(srcTags, dstTags, paramTags, logLevel);
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(srcWidth, srcHeight);
     bufArray[0] = srcBuf;

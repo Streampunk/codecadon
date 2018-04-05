@@ -13,8 +13,9 @@
   limitations under the License.
 */
 
-var test = require('tape');
+var tap = require('tap');
 var codecadon = require('../../codecadon');
+const logLevel = 2;
 
 function make4175Buf(width, height) {
   var pitchBytes = width * 5 / 2;
@@ -150,25 +151,30 @@ function makeTags(width, height, packing, interlace) {
 }
 
 function packTest(description, numTests, onErr, fn) {
-  test(description, (t) => {
+  tap.test(description, (t) => {
     t.plan(numTests + 1);
-    var packer = new codecadon.Packer(() => t.pass(`${description} exited`));
+    var packer = new codecadon.Packer(() => {});
     packer.on('error', err => {
       onErr(t, err);
     });
 
     fn(t, packer, () => {
-      packer.quit(() => {});
+      packer.quit(() => {
+        t.pass(`${description} exited`);
+        t.end();
+      });
     });
   });
 }
+
+tap.plan(22, 'Packer addon tests');
 
 packTest('Handling bad image dimensions', 1,
   (t, err) => t.ok(err, 'emits error'), 
   (t, packer, done) => {
     var srcTags = makeTags(1280, 720, 'pgroup', 0);
     var dstTags = makeTags(21, 0, '420P', 0);
-    packer.setInfo(srcTags, dstTags);
+    packer.setInfo(srcTags, dstTags, logLevel);
     done();
   });
 
@@ -177,7 +183,7 @@ packTest('Handling bad image format', 1,
   (t, packer, done) => {
     var srcTags = makeTags(1280, 720, 'pgroup', 0);
     var dstTags = makeTags(1920, 1080, 'pgroup', 0);
-    packer.setInfo(srcTags, dstTags);
+    packer.setInfo(srcTags, dstTags, logLevel);
     done();
   });
 
@@ -189,7 +195,7 @@ packTest('Starting up a packer', 1,
     var srcTags = makeTags(1280, 720, 'pgroup', 0);
     var dstTags = makeTags(dstWidth, dstHeight, '420P', 0);
   
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
     var numBytesExpected = dstWidth * dstHeight * 3/2;
     t.equal(dstBufLen, numBytesExpected, 'buffer size calculation matches the expected value');
     done();
@@ -202,7 +208,7 @@ packTest('Performing packing pgroup to 420P', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'pgroup', 0);
     var dstTags = makeTags(width, height, '420P', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
@@ -223,7 +229,7 @@ packTest('Performing packing V210 to 420P', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'v210', 0);
     var dstTags = makeTags(width, height, '420P', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = makeV210Buf(width, height);
@@ -244,7 +250,7 @@ packTest('Performing packing pgroup to YUV422P10', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'pgroup', 0);
     var dstTags = makeTags(width, height, 'YUV422P10', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
@@ -265,7 +271,7 @@ packTest('Performing packing pgroup to UYVY10', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'pgroup', 0);
     var dstTags = makeTags(width, height, 'UYVY10', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
@@ -286,7 +292,7 @@ packTest('Performing packing YUV422P10 to UYVY10', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
     var dstTags = makeTags(width, height, 'UYVY10', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = makeYUV422P10Buf(width, height);
@@ -307,7 +313,7 @@ packTest('Performing packing V210 to YUV422P10', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'v210', 0);
     var dstTags = makeTags(width, height, 'YUV422P10', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = makeV210Buf(width, height);
@@ -328,7 +334,7 @@ packTest('Performing packing UYVY10 to pgroup', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'UYVY10', 0);
     var dstTags = makeTags(width, height, 'pgroup', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = makeUYVY10Buf(width, height);
@@ -349,7 +355,7 @@ packTest('Performing packing UYVY10 to YUV422P10', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'UYVY10', 0);
     var dstTags = makeTags(width, height, 'YUV422P10', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = makeUYVY10Buf(width, height);
@@ -370,7 +376,7 @@ packTest('Performing packing UYVY10 to 420P', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'UYVY10', 0);
     var dstTags = makeTags(width, height, '420P', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = makeUYVY10Buf(width, height);
@@ -391,7 +397,7 @@ packTest('Performing packing YUV422P10 to 420P', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
     var dstTags = makeTags(width, height, '420P', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = makeYUV422P10Buf(width, height);
@@ -412,7 +418,7 @@ packTest('Performing packing YUV422P10 to pgroup', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
     var dstTags = makeTags(width, height, 'pgroup', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = makeYUV422P10Buf(width, height);
@@ -433,7 +439,7 @@ packTest('Performing packing 420P to pgroup', 2,
     var height = 720;
     var srcTags = makeTags(width, height, '420P', 0);
     var dstTags = makeTags(width, height, 'pgroup', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = make420PBuf(width, height);
@@ -454,7 +460,7 @@ packTest('Performing packing YUV422P10 to V210', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
     var dstTags = makeTags(width, height, 'v210', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = makeYUV422P10Buf(width, height);
@@ -476,7 +482,7 @@ packTest('Performing packing 420P to V210', 2,
     var height = 720;
     var srcTags = makeTags(width, height, '420P', 0);
     var dstTags = makeTags(width, height, 'v210', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = make420PBuf(width, height);
@@ -498,7 +504,7 @@ packTest('Performing packing pgroup to V210', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'pgroup', 0);
     var dstTags = makeTags(width, height, 'v210', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
@@ -520,7 +526,7 @@ packTest('Performing packing V210 to pgroup', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'v210', 0);
     var dstTags = makeTags(width, height, 'pgroup', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
 
     var bufArray = new Array(1);
     var srcBuf = makeV210Buf(width, height);
@@ -543,7 +549,7 @@ packTest('Handling undefined source', 1,
     var height = 1080;
     var srcTags = makeTags(width, height, 'pgroup', 0);
     var dstTags = makeTags(width, height, '420P', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
     var dstBuf = Buffer.alloc(dstBufLen);
     packer.pack(bufArray, dstBuf, (err/*, result*/) => {
       t.ok(err, 'should return error');
@@ -558,7 +564,7 @@ packTest('Handling undefined destination', 1,
     var height = 1080;
     var srcTags = makeTags(width, height, 'pgroup', 0);
     var dstTags = makeTags(width, height, '420P', 0);
-    /*var dstBufLen =*/ packer.setInfo(srcTags, dstTags);
+    /*var dstBufLen =*/ packer.setInfo(srcTags, dstTags, logLevel);
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;
@@ -576,7 +582,7 @@ packTest('Handling insufficient destination bytes', 1,
     var height = 1080;
     var srcTags = makeTags(width, height, 'pgroup', 0);
     var dstTags = makeTags(width, height, '420P', 0);
-    var dstBufLen = packer.setInfo(srcTags, dstTags);
+    var dstBufLen = packer.setInfo(srcTags, dstTags, logLevel);
     var bufArray = new Array(1);
     var srcBuf = make4175Buf(width, height);
     bufArray[0] = srcBuf;

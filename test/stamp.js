@@ -13,8 +13,9 @@
   limitations under the License.
 */
 
-var test = require('tape');
+var tap = require('tap');
 var codecadon = require('../../codecadon');
+const logLevel = 2;
 
 function make420PBuf(width, height, wipeVal) {
   var lumaPitchBytes = width;
@@ -83,18 +84,23 @@ function makeTags(width, height, packing, interlace) {
 }
 
 function stampTest(description, numTests, onErr, fn) {
-  test(description, (t) => {
+  tap.test(description, (t) => {
     t.plan(numTests + 1);
-    var stamper = new codecadon.Stamper(() => t.pass(`${description} exited`));
+    var stamper = new codecadon.Stamper(() => {});
     stamper.on('error', err => {
       onErr(t, err);
     });
 
     fn(t, stamper, () => {
-      stamper.quit(() => {});
+      stamper.quit(() => {
+        t.pass(`${description} exited`);
+        t.end();        
+      });
     });
   });
 }
+
+tap.plan(7, 'Stamper addon tests');
 
 stampTest('Starting up a stamper', 1,
   (t, err) => t.notOk(err, 'no error expected'), 
@@ -104,7 +110,7 @@ stampTest('Starting up a stamper', 1,
     var srcTags = makeTags(1280, 720, '420P', 0);
     var dstTags = makeTags(dstWidth, dstHeight, '420P', 0);
   
-    var dstBufLen = stamper.setInfo(srcTags, dstTags);
+    var dstBufLen = stamper.setInfo(srcTags, dstTags, logLevel);
     var numBytesExpected = dstWidth * dstHeight * 3/2;
     t.equal(dstBufLen, numBytesExpected, 'buffer size calculation matches the expected value');
     done();
@@ -117,7 +123,7 @@ stampTest('Performing wipe of 420P', 2,
     var height = 720;
     var srcTags = makeTags(width, height, '420P', 0);
     var dstTags = makeTags(width, height, '420P', 0);
-    var dstBufLen = stamper.setInfo(srcTags, dstTags);
+    var dstBufLen = stamper.setInfo(srcTags, dstTags, logLevel);
     var paramTags = { wipeRect:[0,0,1280,720], wipeCol:[1.0,0.0,0.0] };
 
     var dstBuf = Buffer.alloc(dstBufLen);
@@ -136,7 +142,7 @@ stampTest('Performing wipe of YUV422P10', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
     var dstTags = makeTags(width, height, 'YUV422P10', 0);
-    var dstBufLen = stamper.setInfo(srcTags, dstTags);
+    var dstBufLen = stamper.setInfo(srcTags, dstTags, logLevel);
     var paramTags = { wipeRect:[0,0,1280,720], wipeCol:[1.0,0.0,0.0] };
 
     var dstBuf = Buffer.alloc(dstBufLen);
@@ -155,7 +161,7 @@ stampTest('Performing copy of 420P', 2,
     var height = 720;
     var srcTags = makeTags(width, height, '420P', 0);
     var dstTags = makeTags(width, height, '420P', 0);
-    var dstBufLen = stamper.setInfo(srcTags, dstTags);
+    var dstBufLen = stamper.setInfo(srcTags, dstTags, logLevel);
     var paramTags = { dstOrg:[0,0] };
 
     var srcBufArray = new Array(1);
@@ -177,7 +183,7 @@ stampTest('Performing copy of YUV422P10', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
     var dstTags = makeTags(width, height, 'YUV422P10', 0);
-    var dstBufLen = stamper.setInfo(srcTags, dstTags);
+    var dstBufLen = stamper.setInfo(srcTags, dstTags, logLevel);
     var paramTags = { dstOrg:[0,0] };
 
     var srcBufArray = new Array(1);
@@ -199,7 +205,7 @@ stampTest('Performing mix of 420P', 2,
     var height = 720;
     var srcTags = makeTags(width, height, '420P', 0);
     var dstTags = makeTags(width, height, '420P', 0);
-    var dstBufLen = stamper.setInfo(srcTags, dstTags);
+    var dstBufLen = stamper.setInfo(srcTags, dstTags, logLevel);
     var paramTags = { pressure:0.5 };
 
     var srcBufArray = new Array(2);
@@ -223,7 +229,7 @@ stampTest('Performing mix of YUV422P10', 2,
     var height = 720;
     var srcTags = makeTags(width, height, 'YUV422P10', 0);
     var dstTags = makeTags(width, height, 'YUV422P10', 0);
-    var dstBufLen = stamper.setInfo(srcTags, dstTags);
+    var dstBufLen = stamper.setInfo(srcTags, dstTags, logLevel);
     var paramTags = { pressure:0.5 };
 
     var srcBufArray = new Array(2);

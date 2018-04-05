@@ -13,8 +13,9 @@
   limitations under the License.
 */
 
-var test = require('tape');
+var tap = require('tap');
 var codecadon = require('../../codecadon');
+const logLevel = 2;
 
 function makeBufArray(bytesPerBuf, numBuffers) {
   var a = new Array(numBuffers);
@@ -39,18 +40,23 @@ function makeTags(width, height) {
 }
 
 function concatTest(description, numTests, onErr, fn) {
-  test(description, t => {
+  tap.test(description, t => {
     t.plan(numTests + 1);
-    var concater = new codecadon.Concater(() => t.pass(`${description} exited`));
+    var concater = new codecadon.Concater(() => {});
     concater.on('error', err => { 
       onErr(err);
     });
 
     fn(t, concater, () => {
-      concater.quit((/*err, result*/) => {});
+      concater.quit(() => {
+        t.pass(`${description} exited`);
+        t.end();
+      });
     });
   });
 }
+
+tap.plan(4, 'Concatenator addon tests');
 
 concatTest('Performing concatenation', 2,
   (t, err) => t.notOk(err, 'no error expected'),
@@ -59,7 +65,7 @@ concatTest('Performing concatenation', 2,
     var height = 1080;
     var numBuffers = 128;
     var tags = makeTags(width, height);
-    var numBytes = concater.setInfo(tags);
+    var numBytes = concater.setInfo(tags, logLevel);
     var bufArray = makeBufArray(numBytes / numBuffers, numBuffers);
     var dstBuf = Buffer.alloc(numBytes);
     concater.concat(bufArray, dstBuf, (err, result) => {
@@ -76,7 +82,7 @@ concatTest('Handling an undefined source buffer array', 1,
     var width = 1920;
     var height = 1080;
     var tags = makeTags(width, height);
-    var numBytes = concater.setInfo(tags);
+    var numBytes = concater.setInfo(tags, logLevel);
     var bufArray;
     var dstBuf = Buffer.alloc(numBytes);
     concater.concat(bufArray, dstBuf, (err/*, result*/) => {
@@ -92,7 +98,7 @@ concatTest('Handling an undefined destination buffer', 1,
     var height = 1080;
     var numBuffers = 128;
     var tags = makeTags(width, height);
-    var numBytes = concater.setInfo(tags);
+    var numBytes = concater.setInfo(tags, logLevel);
     var bufArray = makeBufArray(numBytes, numBuffers);
     var dstBuf;
     concater.concat(bufArray, dstBuf, (err/*, result*/) => {
@@ -108,7 +114,7 @@ concatTest('Handling source buffer array bytes being greater than destination by
     var height = 1080;
     var numBuffers = 128;
     var tags = makeTags(width, height);
-    var numBytes = concater.setInfo(tags);
+    var numBytes = concater.setInfo(tags, logLevel);
     var bufArray = makeBufArray(numBytes, numBuffers + 10);
     var dstBuf = Buffer.alloc(numBytes);
     concater.concat(bufArray, dstBuf, (err/*, result*/) => {

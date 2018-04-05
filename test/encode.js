@@ -13,8 +13,9 @@
   limitations under the License.
 */
 
-var test = require('tape');
+var tap = require('tap');
 var codecadon = require('../../codecadon');
+const logLevel = 2;
 
 function make420PBuf(width, height) {
   var lumaPitchBytes = width;
@@ -124,18 +125,23 @@ duration.writeUIntBE(1, 0, 4);
 duration.writeUIntBE(25, 4, 4);
 
 function encodeTest(description, numTests, onErr, fn) {
-  test(description, t => {
+  tap.test(description, t => {
     t.plan(numTests + 1);
-    var encoder = new codecadon.Encoder(() => t.pass(`${description} exited`));
+    var encoder = new codecadon.Encoder(() => {});
     encoder.on('error', err => {
       onErr(t, err);
     });
 
     fn(t, encoder, () => {
-      encoder.quit(() => {});
+      encoder.quit(() => {
+        t.pass(`${description} exited`);
+        t.end();
+      });
     });
   });
 }
+
+tap.plan(7, 'Encoder addon tests');
 
 encodeTest('Handling bad image dimensions', 1,
   (t, err) => t.ok(err, 'emits error'), 
@@ -143,7 +149,7 @@ encodeTest('Handling bad image dimensions', 1,
     var srcTags = makeTags(1280, 720, '420P', 'raw', 0);
     var dstTags = makeTags(21, 0, 'h264', 'h264', 0);
     var encodeTags = {};
-    encoder.setInfo(srcTags, dstTags, duration, encodeTags);
+    encoder.setInfo(srcTags, dstTags, duration, encodeTags, logLevel);
     done();
   });
 
@@ -153,7 +159,7 @@ encodeTest('Handling bad image format', 1,
     var srcTags = makeTags(1920, 1080, 'pgroup', 'raw', 0);
     var dstTags = makeTags(1920, 1080, '420P', 'h264', 0);
     var encodeTags = {};
-    encoder.setInfo(srcTags, dstTags, duration, encodeTags);
+    encoder.setInfo(srcTags, dstTags, duration, encodeTags, logLevel);
     done();
   });
 
@@ -165,7 +171,7 @@ encodeTest('Starting up an encoder', 1,
     var srcTags = makeTags(1920, 1080, '420P', 'raw', 0);
     var dstTags = makeTags(dstWidth, dstHeight, 'h264', 'h264', 0);
     var encodeTags = {};
-    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags, logLevel);
     var numBytesExpected = dstWidth * dstHeight;
     t.equal(dstBufLen, numBytesExpected, 'buffer size calculation matches the expected value');
     done();
@@ -185,7 +191,7 @@ encodeTest('Performing h264 encoding', 1,
     var encodeTags = {};
     var bufArray = new Array(1); 
     bufArray[0] = make420PBuf(srcWidth, srcHeight);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags, logLevel);
     var dstBuf = Buffer.alloc(dstBufLen);
     encoder.encode(bufArray, dstBuf, (err/*, result*/) => {
       t.notOk(err, 'no error expected');
@@ -208,7 +214,7 @@ encodeTest('Performing h264 encoding from a V210 source', 1,
     var encodeTags = {};
     var bufArray = new Array(1); 
     bufArray[0] = makeV210Buf(srcWidth, srcHeight);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags, logLevel);
     var dstBuf = Buffer.alloc(dstBufLen);
     encoder.encode(bufArray, dstBuf, (err/*, result*/) => {
       t.notOk(err, 'no error expected');
@@ -231,7 +237,7 @@ encodeTest('Performing AVCi encoding', 1,
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
     var encodeTags = {};
     var bufArray = makeYUV422P10BufArray(srcWidth, srcHeight);
-    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags, logLevel);
     var dstBuf = Buffer.alloc(dstBufLen);
     encoder.encode(bufArray, dstBuf, function(err, result) {
       t.notOk(err, 'no error expected');
@@ -253,7 +259,7 @@ encodeTest('Handling an undefined source buffer array', 1,
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
     var encodeTags = {};
-    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags);
+    var dstBufLen = encoder.setInfo(srcTags, dstTags, duration, encodeTags, logLevel);
     var bufArray;
     var dstBuf = Buffer.alloc(dstBufLen);
     encoder.encode(bufArray, dstBuf, (err/*, result*/) => {
@@ -274,7 +280,7 @@ encodeTest('Handling an undefined destination buffer', 1,
     var srcTags = makeTags(srcWidth, srcHeight, srcFormat, 'raw', 0);
     var dstTags = makeTags(dstWidth, dstHeight, dstFormat, dstFormat, 0);
     var encodeTags = {};
-    /*var dstBufLen =*/ encoder.setInfo(srcTags, dstTags, duration, encodeTags);
+    /*var dstBufLen =*/ encoder.setInfo(srcTags, dstTags, duration, encodeTags, logLevel);
     var bufArray = new Array(1); 
     bufArray[0] = make420PBuf(srcWidth, srcHeight);
     var dstBuf;

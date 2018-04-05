@@ -82,12 +82,11 @@ function makeTags(width, height, packing, interlace) {
   return tags;
 }
 
-function stampTest(description, onErr, fn) {
+function stampTest(description, numTests, onErr, fn) {
   test(description, (t) => {
-    var stamper = new codecadon.Stamper((() => {
-      t.end();
-    }));
-    stamper.on('error', (err) => {
+    t.plan(numTests);
+    var stamper = new codecadon.Stamper(() => {});
+    stamper.on('error', err => {
       onErr(t, err);
     });
 
@@ -97,10 +96,8 @@ function stampTest(description, onErr, fn) {
   });
 }
 
-stampTest('Starting up a stamper', 
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+stampTest('Starting up a stamper', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, stamper, done) => {
     var dstWidth = 1920;
     var dstHeight = 1080;
@@ -113,10 +110,8 @@ stampTest('Starting up a stamper',
     done();
   });
 
-stampTest('Performing wipe of 420P',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+stampTest('Performing wipe of 420P', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, stamper, done) => {
     var width = 1280;
     var height = 720;
@@ -134,10 +129,8 @@ stampTest('Performing wipe of 420P',
     });
   });
 
-stampTest('Performing wipe of YUV422P10',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+stampTest('Performing wipe of YUV422P10', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, stamper, done) => {
     var width = 1280;
     var height = 720;
@@ -155,10 +148,8 @@ stampTest('Performing wipe of YUV422P10',
     });
   });
 
-stampTest('Performing copy of 420P',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+stampTest('Performing copy of 420P', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, stamper, done) => {
     var width = 1280;
     var height = 720;
@@ -179,10 +170,8 @@ stampTest('Performing copy of 420P',
     });
   });
 
-stampTest('Performing copy of YUV422P10',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+stampTest('Performing copy of YUV422P10', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, stamper, done) => {
     var width = 1280;
     var height = 720;
@@ -203,10 +192,8 @@ stampTest('Performing copy of YUV422P10',
     });
   });
 
-stampTest('Performing mix of 420P',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+stampTest('Performing mix of 420P', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, stamper, done) => {
     var width = 1280;
     var height = 720;
@@ -229,10 +216,8 @@ stampTest('Performing mix of 420P',
     });
   });
 
-stampTest('Performing mix of YUV422P10',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+stampTest('Performing mix of YUV422P10', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, stamper, done) => {
     var width = 1280;
     var height = 720;

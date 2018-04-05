@@ -107,12 +107,11 @@ function makeTags(width, height, packing, interlace) {
   return tags;
 }
 
-function scaleConvertTest(description, onErr, fn) {
+function scaleConvertTest(description, numTests, onErr, fn) {
   test(description, (t) => {
-    var scaleConverter = new codecadon.ScaleConverter((() => {
-      t.end();
-    }));
-    scaleConverter.on('error', (err) => {
+    t.plan(numTests);
+    var scaleConverter = new codecadon.ScaleConverter(() => {});
+    scaleConverter.on('error', err => {
       onErr(t, err);
     });
 
@@ -122,10 +121,8 @@ function scaleConvertTest(description, onErr, fn) {
   });
 }
 
-scaleConvertTest('Handling bad image dimensions', 
-  (t, err) => {
-    t.ok(err, 'emits error');
-  }, 
+scaleConvertTest('Handling bad image dimensions', 1,
+  (t, err) => t.ok(err, 'emits error'), 
   (t, scaleConverter, done) => {
     var srcTags = makeTags(1280, 720, 'pgroup', 0);
     var dstTags = makeTags(21, 0, '420P', 0);
@@ -133,10 +130,8 @@ scaleConvertTest('Handling bad image dimensions',
     done();
   });
 
-scaleConvertTest('Handling bad image format',
-  (t, err) => {
-    t.ok(err, 'emits error');
-  }, 
+scaleConvertTest('Handling bad image format', 1,
+  (t, err) => t.ok(err, 'emits error'), 
   (t, scaleConverter, done) => {
     var srcTags = makeTags(1280, 720, 'pgroup', 0);
     var dstTags = makeTags(1920, 1080, 'pgroup', 0);
@@ -144,10 +139,8 @@ scaleConvertTest('Handling bad image format',
     done();
   });
 
-scaleConvertTest('Starting up a scaleConverter', 
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+scaleConvertTest('Starting up a scaleConverter', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, scaleConverter, done) => {
     var dstWidth = 1920;
     var dstHeight = 1080;
@@ -160,10 +153,8 @@ scaleConvertTest('Starting up a scaleConverter',
     done();
   });
 
-scaleConvertTest('Performing scaling pgroup to YUV422P10',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+scaleConvertTest('Performing scaling pgroup to YUV422P10', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, scaleConverter, done) => {
     var srcWidth = 1920;
     var srcHeight = 1080;
@@ -186,10 +177,8 @@ scaleConvertTest('Performing scaling pgroup to YUV422P10',
     });
   });
 
-scaleConvertTest('Handling undefined source',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+scaleConvertTest('Handling undefined source', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, scaleConverter, done) => {
     var bufArray;
     var srcWidth = 1920;
@@ -208,10 +197,8 @@ scaleConvertTest('Handling undefined source',
     });
   });
 
-scaleConvertTest('Handling undefined destination', 
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+scaleConvertTest('Handling undefined destination', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, scaleConverter, done) => {
     var srcWidth = 1920;
     var srcHeight = 1080;
@@ -232,10 +219,8 @@ scaleConvertTest('Handling undefined destination',
     });
   });
 
-scaleConvertTest('Handling insufficient destination bytes', 
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+scaleConvertTest('Handling insufficient destination bytes', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, scaleConverter, done) => {
     var srcWidth = 1920;
     var srcHeight = 1080;

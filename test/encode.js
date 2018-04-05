@@ -123,11 +123,10 @@ var duration = Buffer.alloc(8);
 duration.writeUIntBE(1, 0, 4);
 duration.writeUIntBE(25, 4, 4);
 
-function encodeTest(description, onErr, fn) {
+function encodeTest(description, numTests, onErr, fn) {
   test(description, t => {
-    var encoder = new codecadon.Encoder(() => {
-      t.end();
-    });
+    t.plan(numTests);
+    var encoder = new codecadon.Encoder(() => {});
     encoder.on('error', err => {
       onErr(t, err);
     });
@@ -138,10 +137,8 @@ function encodeTest(description, onErr, fn) {
   });
 }
 
-encodeTest('Handling bad image dimensions',
-  (t, err) => {
-    t.ok(err, 'emits error');
-  }, 
+encodeTest('Handling bad image dimensions', 1,
+  (t, err) => t.ok(err, 'emits error'), 
   (t, encoder, done) => {
     var srcTags = makeTags(1280, 720, '420P', 'raw', 0);
     var dstTags = makeTags(21, 0, 'h264', 'h264', 0);
@@ -150,10 +147,8 @@ encodeTest('Handling bad image dimensions',
     done();
   });
 
-encodeTest('Handling bad image format',
-  (t, err) => {
-    t.ok(err, 'emits error');
-  }, 
+encodeTest('Handling bad image format', 1,
+  (t, err) => t.ok(err, 'emits error'), 
   (t, encoder, done) => {
     var srcTags = makeTags(1920, 1080, 'pgroup', 'raw', 0);
     var dstTags = makeTags(1920, 1080, '420P', 'h264', 0);
@@ -162,10 +157,8 @@ encodeTest('Handling bad image format',
     done();
   });
 
-encodeTest('Starting up an encoder', 
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+encodeTest('Starting up an encoder', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, encoder, done) => {
     var dstWidth = 1920; 
     var dstHeight = 1080; 
@@ -178,10 +171,8 @@ encodeTest('Starting up an encoder',
     done();
   });
 
-encodeTest('Performing h264 encoding',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+encodeTest('Performing h264 encoding', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, encoder, done) => {
     var srcWidth = 1920;
     var srcHeight = 1080;
@@ -203,10 +194,8 @@ encodeTest('Performing h264 encoding',
     });
   });
 
-encodeTest('Performing h264 encoding from a V210 source',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+encodeTest('Performing h264 encoding from a V210 source', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, encoder, done) => {
     var srcWidth = 1920;
     var srcHeight = 1080;
@@ -229,10 +218,8 @@ encodeTest('Performing h264 encoding from a V210 source',
   });
 
 /*
-encodeTest('Performing AVCi encoding',
-  function (t, err) {
-    t.notOk(err, 'no error expected');
-  }, 
+encodeTest('Performing AVCi encoding', 1,
+  function (t, err) t.notOk(err, 'no error expected'), 
   function (t, encoder, done) {
     var srcWidth = 1920;
     var srcHeight = 1080;
@@ -254,10 +241,8 @@ encodeTest('Performing AVCi encoding',
   });
 */
 
-encodeTest('Handling an undefined source buffer array', 
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+encodeTest('Handling an undefined source buffer array', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, encoder, done) => {
     var srcWidth = 1920;
     var srcHeight = 1080;
@@ -277,10 +262,8 @@ encodeTest('Handling an undefined source buffer array',
     });
   });
 
-encodeTest('Handling an undefined destination buffer',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+encodeTest('Handling an undefined destination buffer', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, encoder, done) => {
     var srcWidth = 1920;
     var srcHeight = 1080;

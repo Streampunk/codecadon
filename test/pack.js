@@ -149,12 +149,11 @@ function makeTags(width, height, packing, interlace) {
   return tags;
 }
 
-function packTest(description, onErr, fn) {
+function packTest(description, numTests, onErr, fn) {
   test(description, (t) => {
-    var packer = new codecadon.Packer((() => {
-      t.end();
-    }));
-    packer.on('error', (err) => {
+    t.plan(numTests);
+    var packer = new codecadon.Packer(() => {});
+    packer.on('error', err => {
       onErr(t, err);
     });
 
@@ -164,10 +163,8 @@ function packTest(description, onErr, fn) {
   });
 }
 
-packTest('Handling bad image dimensions', 
-  (t, err) => {
-    t.ok(err, 'emits error');
-  }, 
+packTest('Handling bad image dimensions', 1,
+  (t, err) => t.ok(err, 'emits error'), 
   (t, packer, done) => {
     var srcTags = makeTags(1280, 720, 'pgroup', 0);
     var dstTags = makeTags(21, 0, '420P', 0);
@@ -175,10 +172,8 @@ packTest('Handling bad image dimensions',
     done();
   });
 
-packTest('Handling bad image format',
-  (t, err) => {
-    t.ok(err, 'emits error');
-  }, 
+packTest('Handling bad image format', 1,
+  (t, err) => t.ok(err, 'emits error'), 
   (t, packer, done) => {
     var srcTags = makeTags(1280, 720, 'pgroup', 0);
     var dstTags = makeTags(1920, 1080, 'pgroup', 0);
@@ -186,10 +181,8 @@ packTest('Handling bad image format',
     done();
   });
 
-packTest('Starting up a packer', 
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Starting up a packer', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var dstWidth = 1920;
     var dstHeight = 1080;
@@ -202,10 +195,8 @@ packTest('Starting up a packer',
     done();
   });
 
-packTest('Performing packing pgroup to 420P',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing pgroup to 420P', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -225,10 +216,8 @@ packTest('Performing packing pgroup to 420P',
     });
   });
 
-packTest('Performing packing V210 to 420P',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing V210 to 420P', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -248,10 +237,8 @@ packTest('Performing packing V210 to 420P',
     });
   });
 
-packTest('Performing packing pgroup to YUV422P10',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing pgroup to YUV422P10', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -271,10 +258,8 @@ packTest('Performing packing pgroup to YUV422P10',
     });
   });
 
-packTest('Performing packing pgroup to UYVY10',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing pgroup to UYVY10', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -294,10 +279,8 @@ packTest('Performing packing pgroup to UYVY10',
     });
   });
 
-packTest('Performing packing YUV422P10 to UYVY10',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing YUV422P10 to UYVY10', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -317,10 +300,8 @@ packTest('Performing packing YUV422P10 to UYVY10',
     });
   });
 
-packTest('Performing packing V210 to YUV422P10',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing V210 to YUV422P10', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -340,10 +321,8 @@ packTest('Performing packing V210 to YUV422P10',
     });
   });
 
-packTest('Performing packing UYVY10 to pgroup',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing UYVY10 to pgroup', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -363,10 +342,8 @@ packTest('Performing packing UYVY10 to pgroup',
     });
   });
 
-packTest('Performing packing UYVY10 to YUV422P10',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing UYVY10 to YUV422P10', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -386,10 +363,8 @@ packTest('Performing packing UYVY10 to YUV422P10',
     });
   });
 
-packTest('Performing packing UYVY10 to 420P',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing UYVY10 to 420P', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -409,10 +384,8 @@ packTest('Performing packing UYVY10 to 420P',
     });
   });
 
-packTest('Performing packing YUV422P10 to 420P',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing YUV422P10 to 420P', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -432,10 +405,8 @@ packTest('Performing packing YUV422P10 to 420P',
     });
   });
 
-packTest('Performing packing YUV422P10 to pgroup',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing YUV422P10 to pgroup', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -455,10 +426,8 @@ packTest('Performing packing YUV422P10 to pgroup',
     });
   });
 
-packTest('Performing packing 420P to pgroup',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing 420P to pgroup', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -478,10 +447,8 @@ packTest('Performing packing 420P to pgroup',
     });
   });
 
-packTest('Performing packing YUV422P10 to V210',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing YUV422P10 to V210', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -502,10 +469,8 @@ packTest('Performing packing YUV422P10 to V210',
     });
   });
 
-packTest('Performing packing 420P to V210',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing 420P to V210', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -526,10 +491,8 @@ packTest('Performing packing 420P to V210',
     });
   });
 
-packTest('Performing packing pgroup to V210',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing pgroup to V210', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -550,10 +513,8 @@ packTest('Performing packing pgroup to V210',
     });
   });
 
-packTest('Performing packing V210 to pgroup',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Performing packing V210 to pgroup', 2,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1280;
     var height = 720;
@@ -574,10 +535,8 @@ packTest('Performing packing V210 to pgroup',
     });
   });
 
-packTest('Handling undefined source',
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Handling undefined source', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var bufArray;
     var width = 1920;
@@ -592,10 +551,8 @@ packTest('Handling undefined source',
     });
   });
 
-packTest('Handling undefined destination', 
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Handling undefined destination', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1920;
     var height = 1080;
@@ -612,10 +569,8 @@ packTest('Handling undefined destination',
     });
   });
 
-packTest('Handling insufficient destination bytes', 
-  (t, err) => {
-    t.notOk(err, 'no error expected');
-  }, 
+packTest('Handling insufficient destination bytes', 1,
+  (t, err) => t.notOk(err, 'no error expected'), 
   (t, packer, done) => {
     var width = 1920;
     var height = 1080;

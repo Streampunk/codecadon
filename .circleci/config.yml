@@ -30,7 +30,7 @@ jobs:
     - run: echo 'export PATH="~/Streampunk/codecadon/node_modules/.bin:$PATH"' >> $BASH_ENV
     - run: mkdir -p $CIRCLE_ARTIFACTS/tap
     - run: mkdir -p $CIRCLE_TEST_REPORTS/junit
-    - run: tap -R xunit -o /tmp/circleci-test-results/tap/results.tap test/*.js > /tmp/circleci-test-results/junit/results.xml
+    - run: tap -R xunit -o /tmp/circleci-artifacts/tap/results.tap test/*.js > /tmp/circleci-test-results/junit/results.xml
       
     - store_test_results:
         path: /tmp/circleci-test-results

@@ -94,9 +94,9 @@ concatTest('Handling an undefined source buffer array', 1,
 concatTest('Handling an undefined destination buffer', 1,
   (t, err) => t.notOk(err, 'no error expected'),
   (t, concater, done) => {
-    var width = 1920;
-    var height = 1080;
-    var numBuffers = 128;
+    var width = 256;
+    var height = 64;
+    var numBuffers = 16;
     var tags = makeTags(width, height);
     var numBytes = concater.setInfo(tags, logLevel);
     var bufArray = makeBufArray(numBytes, numBuffers);
@@ -110,12 +110,12 @@ concatTest('Handling an undefined destination buffer', 1,
 concatTest('Handling source buffer array bytes being greater than destination bytes', 1,
   (t, err) => t.notOk(err, 'no error expected'),
   (t, concater, done) => {
-    var width = 1920;
-    var height = 1080;
-    var numBuffers = 128;
+    var width = 256;
+    var height = 64;
+    var numBuffers = 16;
     var tags = makeTags(width, height);
     var numBytes = concater.setInfo(tags, logLevel);
-    var bufArray = makeBufArray(numBytes, numBuffers + 10);
+    var bufArray = makeBufArray(numBytes, numBuffers + 2);
     var dstBuf = Buffer.alloc(numBytes);
     concater.concat(bufArray, dstBuf, (err/*, result*/) => {
       t.ok(err, 'should return error');

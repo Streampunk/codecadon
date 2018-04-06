@@ -104,7 +104,7 @@ private:
     {
       std::shared_ptr<WorkParams> wp = mDoneQueue.dequeue();
       Local<Value> argv[] = { Nan::Null(), Nan::New(wp->mResultBytes) };
-      wp->mCallback->Call(2, argv);
+      wp->mCallback->Call(2, argv, wp->mAsyncResource);
 
       if (!wp->mProcess && !mActive) {
         // notify the thread to exit
@@ -116,18 +116,24 @@ private:
   
   void HandleOKCallback() {
     Nan::HandleScope scope;
-    callback->Call(0, NULL);
+    callback->Call(0, NULL, async_resource);
   }
 
   bool mActive;
   struct WorkParams {
     WorkParams(std::shared_ptr<iProcessData> processData, iProcess *process, Nan::Callback *callback)
-      : mProcessData(processData), mProcess(process), mCallback(callback), mResultBytes(0) {}
-    ~WorkParams() { delete mCallback; }
+      : mProcessData(processData), mProcess(process), 
+        mCallback(callback), mAsyncResource(new Nan::AsyncResource("MyWorker progress")), 
+        mResultBytes(0) {}
+    ~WorkParams() { 
+      delete mCallback;
+      delete mAsyncResource;
+    }
 
     std::shared_ptr<iProcessData> mProcessData;
     iProcess *mProcess;
     Nan::Callback *mCallback;
+    Nan::AsyncResource *mAsyncResource;
     uint32_t mResultBytes;
   };
   WorkQueue<std::shared_ptr<WorkParams> > mWorkQueue;

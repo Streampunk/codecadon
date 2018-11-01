@@ -115,8 +115,10 @@ NAN_METHOD(Flipper::SetInfo) {
   obj->printDebug(eInfo, "Flipper SrcVidInfo: %s%s%s\n", obj->mSrcVidInfo->toString().c_str(), obj->mFlipInfo->hflip()?", hflip":"", obj->mFlipInfo->vflip()?", vflip":"");
 
   // Currently supporting only non-planar formats
-  if (obj->mSrcVidInfo->packing().compare("pgroup") && obj->mSrcVidInfo->packing().compare("v210") && obj->mSrcVidInfo->packing().compare("UYVY10") && 
-      obj->mSrcVidInfo->packing().compare("RGBA8") && obj->mSrcVidInfo->packing().compare("BGR10-A") && obj->mSrcVidInfo->packing().compare("BGR10-A-BS")) {
+  if (obj->mSrcVidInfo->packing().compare("pgroup") && obj->mSrcVidInfo->packing().compare("v210") && 
+      obj->mSrcVidInfo->packing().compare("UYVY10") && 
+      obj->mSrcVidInfo->packing().compare("RGBA8") && obj->mSrcVidInfo->packing().compare("BGRA8") && 
+      obj->mSrcVidInfo->packing().compare("BGR10-A") && obj->mSrcVidInfo->packing().compare("BGR10-A-BS")) {
     std::string err = std::string("Unsupported source format \'") + obj->mSrcVidInfo->packing() + "\'";
     return Nan::ThrowError(err.c_str());
   }

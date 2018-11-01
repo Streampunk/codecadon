@@ -30,6 +30,7 @@ ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std:
   : iDebug(debugLevel), mSwsContext(NULL),
     mSrcWidth(srcVidInfo->width()), mSrcHeight(srcVidInfo->height()), mSrcIlace(srcVidInfo->interlace()),
     mSrcPixFmt((0==srcVidInfo->packing().compare("RGBA8"))?AV_PIX_FMT_RGBA
+               :(0==srcVidInfo->packing().compare("BGRA8"))?AV_PIX_FMT_BGRA
                :((0==srcVidInfo->packing().compare("BGR10-A")) || (0==srcVidInfo->packing().compare("BGR10-A-BS")))?AV_PIX_FMT_GBRP16
                :(8==srcVidInfo->depth())?AV_PIX_FMT_YUV420P:AV_PIX_FMT_YUV422P10LE),
     mDstWidth(dstVidInfo->width()), mDstHeight(dstVidInfo->height()), mDstIlace(dstVidInfo->interlace()),
@@ -86,7 +87,7 @@ ScaleConverterFF::ScaleConverterFF(std::shared_ptr<EssenceInfo> srcVidInfo, std:
   const int *hdTable = sws_getCoefficients((0==srcVidInfo->colorimetry().compare("BT709-2"))?SWS_CS_ITU709:SWS_CS_ITU601);
   sws_setColorspaceDetails(mSwsContext, hdTable, 0, hdTable, 0, 0, 1 << 16, 1 << 16);
 
-  if (AV_PIX_FMT_RGBA==mSrcPixFmt) {
+  if ((AV_PIX_FMT_RGBA==mSrcPixFmt) || (AV_PIX_FMT_BGRA==mSrcPixFmt)) {
     mSrcLinesize[0] = mSrcWidth * 4;
   } else if (AV_PIX_FMT_GBRP16==mSrcPixFmt) {
     uint32_t srcPitch = mSrcWidth * 2;
@@ -116,6 +117,7 @@ ScaleConverterFF::~ScaleConverterFF() {
 
 std::string ScaleConverterFF::packingRequired() const {
   return (AV_PIX_FMT_RGBA==mSrcPixFmt) ? "RGBA8"
+    : (AV_PIX_FMT_BGRA==mSrcPixFmt) ? "BGRA8"
     : (AV_PIX_FMT_GBRP16==mSrcPixFmt) ? "GBRP16"
     : (AV_PIX_FMT_YUV420P==mSrcPixFmt) ? "420P"
       : "YUV422P10";
@@ -143,7 +145,7 @@ void ScaleConverterFF::scaleConvertFrame (std::shared_ptr<Memory> srcBuf, std::s
   if (AV_PIX_FMT_YUV420P==mSrcPixFmt)
     srcChromaBytes /= 2;
   srcData[0] = (uint8_t *)srcBuf->buf();
-  if (AV_PIX_FMT_RGBA==mSrcPixFmt) {
+  if ((AV_PIX_FMT_RGBA==mSrcPixFmt) || (AV_PIX_FMT_BGRA==mSrcPixFmt)) {
     srcData[1] = NULL;
     srcData[2] = NULL;
     srcData[3] = NULL;

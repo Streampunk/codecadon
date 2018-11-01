@@ -92,7 +92,8 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
 
   if (mSrcVidInfo->packing().compare("pgroup") && mSrcVidInfo->packing().compare("v210") && 
       mSrcVidInfo->packing().compare("YUV422P10") && mSrcVidInfo->packing().compare("UYVY10") && mSrcVidInfo->packing().compare("420P") && 
-      mSrcVidInfo->packing().compare("RGBA8") && mSrcVidInfo->packing().compare("BGR10-A") && mSrcVidInfo->packing().compare("BGR10-A-BS")) {
+      mSrcVidInfo->packing().compare("RGBA8") && mSrcVidInfo->packing().compare("BGRA8") && 
+      mSrcVidInfo->packing().compare("BGR10-A") && mSrcVidInfo->packing().compare("BGR10-A-BS")) {
     std::string err = std::string("Unsupported source format \'") + mSrcVidInfo->packing() + "\'";
     return Nan::ThrowError(err.c_str());
   }

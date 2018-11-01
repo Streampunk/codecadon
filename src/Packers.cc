@@ -48,7 +48,7 @@ uint32_t getFormatBytes(const std::string& fmtCode, uint32_t width, uint32_t hei
   else if (0 == fmtCode.compare("YUV422P10")) {
     fmtBytes = width * height * 2 * (hasAlpha?3:2);
   }
-  else if (0 == fmtCode.compare("RGBA8")) {
+  else if ((0 == fmtCode.compare("RGBA8")) || (0 == fmtCode.compare("BGRA8"))) {
     uint32_t pitchBytes = width * 4;
     fmtBytes = pitchBytes * height;
   }

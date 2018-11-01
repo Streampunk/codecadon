@@ -37,7 +37,7 @@ protected:
 
   std::string unpackValue(Local<Value> val) {
     Local<Array> valueArray = Local<Array>::Cast(val);
-    return *String::Utf8Value(valueArray->Get(0));
+    return *Nan::Utf8String(valueArray->Get(0));
   }
 
   bool unpackBool(Local<Object> tags, const std::string& key, bool dflt) {
@@ -79,7 +79,7 @@ protected:
         std::string valStr = unpackValue(val);
         result = valStr.empty()?dflt:valStr;
       } else
-        result = *String::Utf8Value(val);
+        result = *Nan::Utf8String(val);
     }
     return result;
   } 

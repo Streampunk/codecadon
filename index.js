@@ -16,8 +16,8 @@
 'use strict';
 var codecAdon = require('bindings')('./Release/codecadon');
 
-// var SegfaultHandler = require('segfault-handler');
-// SegfaultHandler.registerHandler("crash.log");
+var SegfaultHandler = require('segfault-handler');
+SegfaultHandler.registerHandler('crash.log');
 
 const util = require('util');
 const EventEmitter = require('events');

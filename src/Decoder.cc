@@ -147,7 +147,7 @@ NAN_METHOD(Decoder::Decode) {
     std::string err = std::string("Decoder requires single source buffer - received ") + std::to_string(srcBufArray->Length());
     return Nan::ThrowError(err.c_str());
   }
-  Local<Object> srcBuf = Local<Object>::Cast(srcBufArray->Get(0));
+  Local<Object> srcBuf = Local<Object>::Cast(srcBufArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked());
 
   std::shared_ptr<iProcessData> epd = std::make_shared<DecodeProcessData>(srcBuf, dstBuf);
   obj->mWorker->doFrame(epd, obj, new Nan::Callback(callback));

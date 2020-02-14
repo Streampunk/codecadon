@@ -80,7 +80,7 @@ public:
       mPressure(pressure)
   { 
     for (uint32_t i=0; i<srcBufArray->Length(); ++i) {
-      Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(i));
+      Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), i).ToLocalChecked());
       mPersistentSrcBufs.push_back(std::shared_ptr<Persist>(new Persist(srcBufObj)));
       mSrcBufs.push_back(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj)));
     }
@@ -106,7 +106,7 @@ public:
       mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBufObj), (uint32_t)node::Buffer::Length(dstBufObj)))
   { 
     for (uint32_t i=0; i<srcBufArray->Length(); ++i) {
-      Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(i));
+      Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), i).ToLocalChecked());
       mPersistentSrcBufs.push_back(std::shared_ptr<Persist>(new Persist(srcBufObj)));
       mSrcBufs.push_back(Memory::makeNew((uint8_t *)node::Buffer::Data(srcBufObj), (uint32_t)node::Buffer::Length(srcBufObj)));
     }
@@ -163,7 +163,7 @@ uint32_t Stamper::processFrame (std::shared_ptr<iProcessData> processData) {
 }
 
 void Stamper::doSetInfo(Local<Array> srcTagsArray, Local<Object> dstTags) {
-  Local<Object> srcTags = Local<Object>::Cast(srcTagsArray->Get(0));
+  Local<Object> srcTags = Local<Object>::Cast(srcTagsArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked());
   mSrcVidInfo = std::make_shared<EssenceInfo>(srcTags); 
   printDebug(eInfo, "Stamper SrcVidInfo: %s\n", mSrcVidInfo->toString().c_str());
   mDstVidInfo = std::make_shared<EssenceInfo>(dstTags); 
@@ -519,17 +519,17 @@ NAN_METHOD(Stamper::Wipe) {
   Local<Array> wipeRectArr = Local<Array>::Cast(Nan::Get(paramTags, wipeRectStr).ToLocalChecked());
   if (!(!wipeRectArr->IsNull() && wipeRectArr->IsArray() && (wipeRectArr->Length() == 4)))
     return Nan::ThrowError("wipeRect parameter invalid");
-  iRect wipeRect(iXY(Nan::To<uint32_t>(wipeRectArr->Get(0)).FromJust(), Nan::To<uint32_t>(wipeRectArr->Get(1)).FromJust()),
-                 iXY(Nan::To<uint32_t>(wipeRectArr->Get(2)).FromJust(), Nan::To<uint32_t>(wipeRectArr->Get(3)).FromJust()));
+  iRect wipeRect(iXY(Nan::To<uint32_t>(wipeRectArr->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked()).FromJust(), Nan::To<uint32_t>(wipeRectArr->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 1).ToLocalChecked()).FromJust()),
+                 iXY(Nan::To<uint32_t>(wipeRectArr->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 2).ToLocalChecked()).FromJust(), Nan::To<uint32_t>(wipeRectArr->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 3).ToLocalChecked()).FromJust()));
 
   Local<String> wipeColStr = Nan::New<String>("wipeCol").ToLocalChecked();
   Local<Array> wipeColArr = Local<Array>::Cast(Nan::Get(paramTags, wipeColStr).ToLocalChecked());
   if (!(!wipeColArr->IsNull() && wipeColArr->IsArray() && (wipeColArr->Length() == 3)))
     return Nan::ThrowError("wipeCol parameter invalid");
 
-  fCol wipeCol(Nan::To<double>(wipeColArr->Get(0)).FromJust(), 
-               Nan::To<double>(wipeColArr->Get(1)).FromJust(),
-               Nan::To<double>(wipeColArr->Get(2)).FromJust());
+  fCol wipeCol(Nan::To<double>(wipeColArr->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked()).FromJust(), 
+               Nan::To<double>(wipeColArr->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 1).ToLocalChecked()).FromJust(),
+               Nan::To<double>(wipeColArr->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 2).ToLocalChecked()).FromJust());
 
   std::shared_ptr<iProcessData> wpd = 
     std::make_shared<WipeProcessData>(dstBufObj, wipeRect, wipeCol);
@@ -555,7 +555,7 @@ NAN_METHOD(Stamper::Copy) {
   Local<Object> paramTags = Local<Object>::Cast(info[2]);
   Local<Function> callback = Local<Function>::Cast(info[3]);
 
-  Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(0));
+  Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked());
 
   Stamper* obj = Nan::ObjectWrap::Unwrap<Stamper>(info.Holder());
 
@@ -573,7 +573,7 @@ NAN_METHOD(Stamper::Copy) {
   Local<Array> dstOrgXY = Local<Array>::Cast(Nan::Get(paramTags, dstOrgStr).ToLocalChecked());
   if (!(!dstOrgXY->IsNull() && dstOrgXY->IsArray() && (dstOrgXY->Length() == 2)))
     return Nan::ThrowError("dstOrg parameter invalid");
-  iXY dstOrg(Nan::To<uint32_t>(dstOrgXY->Get(0)).FromJust(), Nan::To<uint32_t>(dstOrgXY->Get(1)).FromJust());
+  iXY dstOrg(Nan::To<uint32_t>(dstOrgXY->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked()).FromJust(), Nan::To<uint32_t>(dstOrgXY->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 1).ToLocalChecked()).FromJust());
 
   std::shared_ptr<iProcessData> cpd = 
     std::make_shared<CopyProcessData>(srcBufObj, dstBufObj, dstOrg);
@@ -606,7 +606,7 @@ NAN_METHOD(Stamper::Mix) {
 
   uint32_t srcFormatBytes = getFormatBytes(obj->mSrcVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height());
   for (uint32_t i=0; i<srcBufArray->Length(); ++i) {
-    Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(i));
+    Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), i).ToLocalChecked());
     if (srcFormatBytes > (uint32_t)node::Buffer::Length(srcBufObj))
       Nan::ThrowError("Insufficient source buffer for Mix\n");
   }
@@ -654,7 +654,7 @@ NAN_METHOD(Stamper::Stamp) {
 
   for (uint32_t i=0; i<srcBufArray->Length(); ++i) {
     uint32_t srcFormatBytes = getFormatBytes(obj->mSrcVidInfo->packing(), obj->mSrcVidInfo->width(), obj->mSrcVidInfo->height(), 0==i);
-    Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(i));
+    Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), i).ToLocalChecked());
     if (srcFormatBytes > (uint32_t)node::Buffer::Length(srcBufObj))
       Nan::ThrowError("Insufficient source buffer for Stamp\n");
   }

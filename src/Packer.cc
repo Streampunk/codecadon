@@ -138,7 +138,7 @@ NAN_METHOD(Packer::Pack) {
   Local<Object> dstBufObj = Local<Object>::Cast(info[1]);
   Local<Function> callback = Local<Function>::Cast(info[2]);
 
-  Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(0));
+  Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked());
 
   Packer* obj = Nan::ObjectWrap::Unwrap<Packer>(info.Holder());
 

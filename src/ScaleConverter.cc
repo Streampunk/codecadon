@@ -111,7 +111,7 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
   if (!(!scaleXY->IsNull() && scaleXY->IsArray() && (scaleXY->Length() == 2)))
     return Nan::ThrowError("Scale parameter invalid");
 
-  fXY scale(Nan::To<double>(scaleXY->Get(0)).FromJust(), Nan::To<double>(scaleXY->Get(1)).FromJust());
+  fXY scale(Nan::To<double>(scaleXY->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked()).FromJust(), Nan::To<double>(scaleXY->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 1).ToLocalChecked()).FromJust());
   if ((scale.x > 10.0f) || (scale.y > 10.0f)) {
     std::string err = std::string("Unsupported Scale values X:") + std::to_string(scale.x).c_str() + ", Y:" + std::to_string(scale.y).c_str();
     return Nan::ThrowError(err.c_str());
@@ -122,7 +122,7 @@ void ScaleConverter::doSetInfo(Local<Object> srcTags, Local<Object> dstTags, v8:
   if (!(!dstOffsetXY->IsNull() && dstOffsetXY->IsArray() && (dstOffsetXY->Length() == 2)))
     return Nan::ThrowError("DstOffset parameter invalid");
 
-  fXY dstOffset(Nan::To<double>(dstOffsetXY->Get(0)).FromJust(), Nan::To<double>(dstOffsetXY->Get(1)).FromJust());
+  fXY dstOffset(Nan::To<double>(dstOffsetXY->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked()).FromJust(), Nan::To<double>(dstOffsetXY->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 1).ToLocalChecked()).FromJust());
   if ((dstOffset.x > mDstVidInfo->width() / 2) || (dstOffset.y > mDstVidInfo->height() / 2)) {
     std::string err = std::string("Unsupported DstOffset values X:") + std::to_string(dstOffset.x).c_str() + ", Y:" + std::to_string(dstOffset.y).c_str();
     return Nan::ThrowError(err.c_str());
@@ -186,7 +186,7 @@ NAN_METHOD(ScaleConverter::ScaleConvert) {
   Local<Object> dstBufObj = Local<Object>::Cast(info[1]);
   Local<Function> callback = Local<Function>::Cast(info[2]);
   
-  Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(0));
+  Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked());
 
   ScaleConverter* obj = Nan::ObjectWrap::Unwrap<ScaleConverter>(info.Holder());
 

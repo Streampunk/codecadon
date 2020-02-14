@@ -34,7 +34,7 @@ public:
     : mPersistentSrcBuf(new Persist(srcBufArray)), mPersistentDstBuf(new Persist(dstBuf)),
       mDstBuf(Memory::makeNew((uint8_t *)node::Buffer::Data(dstBuf), (uint32_t)node::Buffer::Length(dstBuf))), mSrcBytes(0) {
     for (uint32_t i = 0; i < srcBufArray->Length(); ++i) {
-      Local<Object> bufferObj = Local<Object>::Cast(srcBufArray->Get(i));
+      Local<Object> bufferObj = Local<Object>::Cast(srcBufArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), i).ToLocalChecked());
       uint32_t bufLen = (uint32_t)node::Buffer::Length(bufferObj);
       mSrcBufVec.push_back(std::make_pair((uint8_t *)node::Buffer::Data(bufferObj), bufLen)); 
       mSrcBytes += bufLen;

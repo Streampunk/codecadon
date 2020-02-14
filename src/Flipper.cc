@@ -1,5 +1,4 @@
 /* Copyright 2017 Streampunk Media Ltd.
-
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
@@ -150,7 +149,7 @@ NAN_METHOD(Flipper::Flip) {
   Local<Object> dstBufObj = Local<Object>::Cast(info[1]);
   Local<Function> callback = Local<Function>::Cast(info[2]);
 
-  Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(0));
+  Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked());
 
   Flipper* obj = Nan::ObjectWrap::Unwrap<Flipper>(info.Holder());
 

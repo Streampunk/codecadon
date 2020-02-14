@@ -198,7 +198,7 @@ NAN_METHOD(Encoder::Encode) {
     std::string err = std::string("Encoder requires single source buffer - received ") + std::to_string(srcBufArray->Length());
     return Nan::ThrowError(err.c_str());
   }
-  Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(0));
+  Local<Object> srcBufObj = Local<Object>::Cast(srcBufArray->Get(v8::Isolate::GetCurrent()->GetCurrentContext(), 0).ToLocalChecked());
   std::shared_ptr<Memory> convertDstBuf;
   if (obj->mPacker)
     convertDstBuf = Memory::makeNew(getFormatBytes(obj->mEncoderDriver->packingRequired(), obj->mSrcInfo->width(), obj->mSrcInfo->height()));
